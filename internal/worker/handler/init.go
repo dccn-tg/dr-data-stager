@@ -46,7 +46,7 @@ func (h *StagerJobRunner) Handle(r *bokchoy.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid payload: %s", err)
 	}
-	log.Debugf("payload data: %+v", data)
+	log.Debugf("[%s] payload data: %+v", t.ID, data)
 
 	// internal context that is closed upon timeout
 	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(data.Timeout)*time.Second)
@@ -64,7 +64,7 @@ func (h *StagerJobRunner) Handle(r *bokchoy.Request) error {
 	}
 
 	if nf == 0 {
-		log.Warnf("%s is empty. Nothing to sync.", data.SrcURL)
+		log.Warnf("[%s] %s is empty. Nothing to sync.", t.ID, data.SrcURL)
 		t.Result = job.Progress{
 			Total:     0,
 			Processed: 0,
@@ -77,8 +77,6 @@ func (h *StagerJobRunner) Handle(r *bokchoy.Request) error {
 		Total:     int64(nf),
 		Processed: 0,
 	}
-
-	log.Infof("%+v", t.Result)
 	h.Queue.Save(r.Context(), t)
 
 	dstPathInfo, _ := ppath.GetPathInfo(ctx, data.DstURL)
@@ -90,12 +88,6 @@ func (h *StagerJobRunner) Handle(r *bokchoy.Request) error {
 
 	// ticker to update queue data every 2 seconds
 	ticker := time.NewTicker(2 * time.Second)
-	defer func() {
-		if !timer.Stop() {
-			<-timer.C
-		}
-		ticker.Stop()
-	}()
 
 	c := 0
 	for {
@@ -128,12 +120,12 @@ func (h *StagerJobRunner) Handle(r *bokchoy.Request) error {
 				return fmt.Errorf("[attempt %d] %s, path: %s", nattempt, e.Error, e.File)
 			}
 		case <-ticker.C:
-			log.Infof("save to queue")
+			log.Debugf("[%s] update progress to queue", t.ID)
 			// update queue with progress data
 			h.Queue.Save(r.Context(), t)
 		case <-timer.C:
-			log.Infof("no progress")
-			// reach the progress check timer
+			log.Infof("[%s] no progress", t.ID)
+			// fail job due to timeout no progress
 			return fmt.Errorf("[attempt %d] timeout after %d seconds without progress", nattempt, data.TimeoutNoprogress)
 		case <-ctx.Done():
 			// fail job if context is closed due to timeout.
@@ -141,7 +133,7 @@ func (h *StagerJobRunner) Handle(r *bokchoy.Request) error {
 		}
 
 		if success == nil && failure == nil {
-			log.Debugf("finish")
+			log.Debugf("[%s] finished", t.ID)
 			break
 		}
 	}
