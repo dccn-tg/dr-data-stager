@@ -1,0 +1,4 @@
+auth:
+  demo: demo123
+  admin: admin 
+jwksEndpoint: https://auth-dev.dccn.nl/.well-known/openid-configuration/jwks 

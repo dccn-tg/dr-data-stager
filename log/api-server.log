@@ -1,0 +1,4 @@
+{"level":"fatal","ts":"2021-05-12T15:53:39.661+0200","caller":"api-server/main.go:80","msg":"fail to load configuration: "}
+{"level":"error","ts":"2021-05-12T15:54:59.700+0200","caller":"api-server/main.go:135","msg":"cannot connect to db: unable to initialize broker: dial tcp: lookup redis: no such host"}
+{"level":"info","ts":"2021-05-17T17:10:24.429+0200","caller":"handler/init.go:136","msg":"&{DrUser:0xc0005de190 DstURL:0xc0005de1a0 SrcURL:0xc0005de1b0 StagerUser:0xc0005de1c0 Timeout:0 TimeoutNoprogress:0 Title:0xc0005de1d0}"}
+{"level":"info","ts":"2021-05-17T17:10:24.429+0200","caller":"handler/init.go:140","msg":"demo demo"}
