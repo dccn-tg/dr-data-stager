@@ -104,6 +104,12 @@ func main() {
 	// add handler to handle tasks in the queue
 	queue := bok.Queue(hapi.StagerJobQueueName)
 
+	queue.OnStartFunc(func(r *bokchoy.Request) error {
+		// log start of the job
+		log.Infof("[%s] started", r.Task.ID)
+		return nil
+	})
+
 	queue.Handle(
 		&hworker.StagerJobRunner{
 			ConfigFile: *configFile,
