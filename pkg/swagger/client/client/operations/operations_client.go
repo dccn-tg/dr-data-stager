@@ -30,6 +30,8 @@ type ClientOption func(*runtime.ClientOperation)
 
 // ClientService is the interface for Client methods
 type ClientService interface {
+	DeleteJobID(params *DeleteJobIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteJobIDOK, error)
+
 	GetJobID(params *GetJobIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobIDOK, error)
 
 	GetJobsStatus(params *GetJobsStatusParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobsStatusOK, error)
@@ -39,6 +41,45 @@ type ClientService interface {
 	PostJob(params *PostJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostJobOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
+}
+
+/*
+  DeleteJobID cancels a stager job
+*/
+func (a *Client) DeleteJobID(params *DeleteJobIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteJobIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteJobIDParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "DeleteJobID",
+		Method:             "DELETE",
+		PathPattern:        "/job/{id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &DeleteJobIDReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteJobIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for DeleteJobID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*

@@ -130,6 +130,39 @@ paths:
           description: failure
           schema:
             $ref: '#/definitions/responseBody500'
+    delete:
+      summary: cancel a stager job
+      security:
+        - oauth2: [data-stager]
+        - basicAuth: []
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: id
+          description: job identifier
+          type: string
+          required: true
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/responseBodyJobInfo'
+        400:
+          description: bad request
+          schema:
+            $ref: '#/definitions/responseBody400'
+        404:
+          description: job not found
+          schema:
+            type: string
+            enum: [job not found]
+        500:
+          description: failure
+          schema:
+            $ref: '#/definitions/responseBody500'      
 
 # object definitions
 definitions:

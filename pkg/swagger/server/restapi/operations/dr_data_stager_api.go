@@ -44,6 +44,9 @@ func NewDrDataStagerAPI(spec *loads.Document) *DrDataStagerAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
+		DeleteJobIDHandler: DeleteJobIDHandlerFunc(func(params DeleteJobIDParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation DeleteJobID has not yet been implemented")
+		}),
 		GetJobIDHandler: GetJobIDHandlerFunc(func(params GetJobIDParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation GetJobID has not yet been implemented")
 		}),
@@ -113,6 +116,8 @@ type DrDataStagerAPI struct {
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
 
+	// DeleteJobIDHandler sets the operation handler for the delete job ID operation
+	DeleteJobIDHandler DeleteJobIDHandler
 	// GetJobIDHandler sets the operation handler for the get job ID operation
 	GetJobIDHandler GetJobIDHandler
 	// GetJobsStatusHandler sets the operation handler for the get jobs status operation
@@ -205,6 +210,9 @@ func (o *DrDataStagerAPI) Validate() error {
 		unregistered = append(unregistered, "Oauth2Auth")
 	}
 
+	if o.DeleteJobIDHandler == nil {
+		unregistered = append(unregistered, "DeleteJobIDHandler")
+	}
 	if o.GetJobIDHandler == nil {
 		unregistered = append(unregistered, "GetJobIDHandler")
 	}
@@ -320,6 +328,10 @@ func (o *DrDataStagerAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/job/{id}"] = NewDeleteJobID(o.context, o.DeleteJobIDHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

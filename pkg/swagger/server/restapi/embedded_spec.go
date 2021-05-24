@@ -129,6 +129,63 @@ func init() {
             }
           }
         }
+      },
+      "delete": {
+        "security": [
+          {
+            "oauth2": [
+              "data-stager"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "cancel a stager job",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "job identifier",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobInfo"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "$ref": "#/definitions/responseBody400"
+            }
+          },
+          "404": {
+            "description": "job not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "job not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
       }
     },
     "/jobs/{status}": {
@@ -453,6 +510,63 @@ func init() {
           "application/json"
         ],
         "summary": "get stager job information",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "job identifier",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobInfo"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "$ref": "#/definitions/responseBody400"
+            }
+          },
+          "404": {
+            "description": "job not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "job not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "oauth2": [
+              "data-stager"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "cancel a stager job",
         "parameters": [
           {
             "type": "string",

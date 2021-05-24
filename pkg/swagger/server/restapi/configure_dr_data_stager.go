@@ -56,6 +56,11 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 	// Example:
 	// api.APIAuthorizer = security.Authorized()
 
+	if api.DeleteJobIDHandler == nil {
+		api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation operations.DeleteJobID has not yet been implemented")
+		})
+	}
 	if api.GetJobIDHandler == nil {
 		api.GetJobIDHandler = operations.GetJobIDHandlerFunc(func(params operations.GetJobIDParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation operations.GetJobID has not yet been implemented")
