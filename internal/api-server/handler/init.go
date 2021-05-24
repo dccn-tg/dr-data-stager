@@ -24,7 +24,10 @@ var (
 	StagerJobQueueName string = "stager"
 
 	// MaxRetries (i.e. total attempts - 1)
-	MaxRetries int = 4
+	MaxRetries int = 2
+
+	// RetryIntervalSeconds
+	RetryIntervalSeconds int = 1
 )
 
 // Error code definitions.
@@ -96,6 +99,83 @@ func GetJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.Ge
 	}
 }
 
+// CancelJob cancels the job.
+func CancelJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
+
+	return func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
+
+		id := params.ID
+
+		// retrieve task from the queue
+		q := bok.Queue(StagerJobQueueName)
+
+		t, err := q.Get(ctx, id)
+
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewDeleteJobIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobQueueError,
+				},
+			)
+		}
+
+		res, err := json.Marshal(t.Payload)
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewDeleteJobIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobDataError,
+				},
+			)
+		}
+
+		var data job.Stager
+		err = json.Unmarshal(res, &data)
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewDeleteJobIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobDataError,
+				},
+			)
+		}
+
+		if data.StagerUser != *(*string)(principal) {
+			return operations.NewDeleteJobIDNotFound().WithPayload(
+				fmt.Sprintf("job %s doesn't exist or not owned by the authenticated user: %s", id, *principal),
+			)
+		}
+
+		t, err = q.Cancel(ctx, id)
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewDeleteJobIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobQueueError,
+				},
+			)
+		}
+
+		jinfo, err := composeResponseBodyJobInfo(t)
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewDeleteJobIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobDataError,
+				},
+			)
+		}
+
+		return operations.NewDeleteJobIDOK().WithPayload(jinfo)
+	}
+}
+
 // NewJob registers the incoming transfer request as a new stager job in the queue.
 func NewJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
@@ -138,6 +218,9 @@ func NewJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.Po
 		// 3. the default job max retries is defined by `MaxRetries`
 		tbok, err := bok.Queue(StagerJobQueueName).Publish(ctx, &j,
 			bokchoy.WithMaxRetries(MaxRetries),
+			bokchoy.WithRetryIntervals([]time.Duration{
+				time.Duration(RetryIntervalSeconds) * time.Second,
+			}),
 			bokchoy.WithTimeout(7*24*time.Hour),
 			bokchoy.WithTTL(3*24*time.Hour))
 

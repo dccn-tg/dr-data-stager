@@ -220,6 +220,7 @@ func main() {
 
 	api.GetPingHandler = operations.GetPingHandlerFunc(handler.GetPing(cfg))
 	api.GetJobIDHandler = operations.GetJobIDHandlerFunc(handler.GetJob(ctx, bok))
+	api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(handler.CancelJob(ctx, bok))
 	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, bok))
 
 	// configure API
