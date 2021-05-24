@@ -76,6 +76,8 @@ func main() {
 
 	ctx := context.Background()
 
+	// connect to bokchoy task scheduler.
+	// see https://github.com/thoas/bokchoy
 	bok, err := bokchoy.New(ctx,
 		bokchoy.Config{
 			Broker: bokchoy.BrokerConfig{
@@ -98,18 +100,75 @@ func main() {
 		os.Exit(1)
 	}
 
+	//NOTE: we don't use `middleware.Timout` because that will
+	//      immediately cancel the job.  What we want is to fail
+	//      the job followed by another retry.  Thus  we handle
+	//      timout within the main job handler.
 	bok.Use(middleware.Recoverer)
 	bok.Use(middleware.DefaultLogger)
 
 	// add handler to handle tasks in the queue
 	queue := bok.Queue(hapi.StagerJobQueueName)
 
+	// cache event when job is started
 	queue.OnStartFunc(func(r *bokchoy.Request) error {
+
+		// we need to registry `Task.MaxRetries` as context value
+		// so that it can be used in the event handler when task
+		// is failed.
+		*r = *r.WithContext(context.WithValue(r.Context(), "maxRetries", r.Task.MaxRetries))
+
 		// log start of the job
-		log.Infof("[%s] started", r.Task.ID)
+		log.Infof("[%s] started, max retries: %d", r.Task.ID, r.Task.MaxRetries)
 		return nil
 	})
 
+	// cache event when job is succeeded
+	queue.OnSuccessFunc(func(r *bokchoy.Request) error {
+		// log success of the job
+		log.Infof("[%s] succeeded", r.Task.ID)
+		// TODO: notify job owner
+		return nil
+	})
+
+	// cache event when job is failed
+	queue.OnFailureFunc(func(r *bokchoy.Request) error {
+
+		// get remaining retries from context
+		maxRetries := r.Context().Value("maxRetries")
+
+		// log failure of the job
+		log.Infof("[%s] failed, remaing attempts: %d", r.Task.ID, maxRetries)
+
+		if maxRetries == 0 { // task failed definitely.
+			// TODO: notify administrator
+			// TODO: optionally notify job owner
+			log.Infof("[%s] sending alert on failue", r.Task.ID)
+		}
+
+		return nil
+	})
+
+	// // cache event when job is completed
+	// queue.OnCompleteFunc(func(r *bokchoy.Request) error {
+	// 	switch {
+	// 	case r.Task.IsStatusSucceeded():
+	// 		log.Infof("[%s] completed successfully", r.Task.ID)
+	// 		// TODO: send notification to owner
+	// 		return nil
+	// 	case r.Task.IsStatusFailed():
+	// 		log.Infof("[%s] completed with failure", r.Task.ID)
+	// 		// TODO: send notification to admin
+	// 		return nil
+	// 	case r.Task.IsStatusCanceled():
+	// 		log.Infof("[%s] canceled", r.Task.ID)
+	// 		return nil
+	// 	default:
+	// 		return nil
+	// 	}
+	// })
+
+	// main job handler
 	queue.Handle(
 		&hworker.StagerJobRunner{
 			ConfigFile: *configFile,
