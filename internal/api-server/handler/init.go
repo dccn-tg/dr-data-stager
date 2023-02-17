@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/api-server/config"
-	"github.com/Donders-Institute/dr-data-stager/internal/job"
 	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
 	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/restapi/operations"
+	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/thoas/bokchoy"
+	"github.com/hibiken/asynq"
 
 	log "github.com/Donders-Institute/tg-toolset-golang/pkg/logger"
 )
@@ -59,15 +59,15 @@ func GetPing(cfg config.Configuration) func(params operations.GetPingParams) mid
 }
 
 // GetJob retrieves job information.
-func GetJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.GetJobIDParams, principal *models.Principal) middleware.Responder {
+func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operations.GetJobIDParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.GetJobIDParams, principal *models.Principal) middleware.Responder {
 		id := params.ID
 
 		// retrieve task from the queue
-		tbok, err := bok.Queue(StagerJobQueueName).Get(ctx, id)
+		taskInfo, err := inspector.GetTaskInfo("default", id)
 
 		if err != nil {
-			log.Errorf("%s", err)
+			log.Errorf("[%s] cannot get task: %s", id, err)
 			return operations.NewGetJobIDInternalServerError().WithPayload(
 				&models.ResponseBody500{
 					ErrorMessage: err.Error(),
@@ -76,7 +76,7 @@ func GetJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.Ge
 			)
 		}
 
-		res, err := composeResponseBodyJobInfo(tbok)
+		res, err := composeResponseBodyJobInfo(taskInfo)
 		if err != nil {
 			log.Errorf("%s", err)
 			return operations.NewGetJobIDInternalServerError().WithPayload(
@@ -100,30 +100,16 @@ func GetJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.Ge
 }
 
 // CancelJob cancels the job.
-func CancelJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
+func CancelJob(ctx context.Context, inspector *asynq.Inspector) func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
 
 	return func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
 
 		id := params.ID
 
 		// retrieve task from the queue
-		q := bok.Queue(StagerJobQueueName)
-
-		t, err := q.Get(ctx, id)
-
+		taskInfo, err := inspector.GetTaskInfo("default", id)
 		if err != nil {
-			log.Errorf("%s", err)
-			return operations.NewDeleteJobIDInternalServerError().WithPayload(
-				&models.ResponseBody500{
-					ErrorMessage: err.Error(),
-					ExitCode:     JobQueueError,
-				},
-			)
-		}
-
-		res, err := json.Marshal(t.Payload)
-		if err != nil {
-			log.Errorf("%s", err)
+			log.Errorf("[%s] error retrieve task info: %s", err)
 			return operations.NewDeleteJobIDInternalServerError().WithPayload(
 				&models.ResponseBody500{
 					ErrorMessage: err.Error(),
@@ -132,10 +118,11 @@ func CancelJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations
 			)
 		}
 
-		var data job.Stager
-		err = json.Unmarshal(res, &data)
+		// unmarshal task payload
+		var payload tasks.StagerPayload
+		err = json.Unmarshal(taskInfo.Payload, &payload)
 		if err != nil {
-			log.Errorf("%s", err)
+			log.Errorf("[%s] error unmarshal task payload: %s", err)
 			return operations.NewDeleteJobIDInternalServerError().WithPayload(
 				&models.ResponseBody500{
 					ErrorMessage: err.Error(),
@@ -144,15 +131,15 @@ func CancelJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations
 			)
 		}
 
-		if data.StagerUser != *(*string)(principal) {
+		// check stager user
+		if payload.StagerUser != *(*string)(principal) {
 			return operations.NewDeleteJobIDNotFound().WithPayload(
-				fmt.Sprintf("job %s doesn't exist or not owned by the authenticated user: %s", id, *principal),
+				fmt.Sprintf("[%s] task doesn't exist or not owned by the authenticated user: %s", id, *principal),
 			)
 		}
 
-		t, err = q.Cancel(ctx, id)
-		if err != nil {
-			log.Errorf("%s", err)
+		if err := inspector.CancelProcessing(id); err != nil {
+			log.Errorf("[%s] cannot cancel task: %s", id, err)
 			return operations.NewDeleteJobIDInternalServerError().WithPayload(
 				&models.ResponseBody500{
 					ErrorMessage: err.Error(),
@@ -161,7 +148,9 @@ func CancelJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations
 			)
 		}
 
-		jinfo, err := composeResponseBodyJobInfo(t)
+		log.Infof("[%s] task cancelled", id)
+
+		jinfo, err := composeResponseBodyJobInfo(taskInfo)
 		if err != nil {
 			log.Errorf("%s", err)
 			return operations.NewDeleteJobIDInternalServerError().WithPayload(
@@ -177,7 +166,7 @@ func CancelJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations
 }
 
 // NewJob registers the incoming transfer request as a new stager job in the queue.
-func NewJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
+func NewJob(ctx context.Context, client *asynq.Client) func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 
 		// check if job owner matches the authenticated principal
@@ -190,39 +179,27 @@ func NewJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.Po
 			)
 		}
 
-		j := job.Stager{
-			Title:             *params.Data.Title,
-			DrUser:            *params.Data.DrUser,
-			StagerUser:        *params.Data.StagerUser,
-			SrcURL:            *params.Data.SrcURL,
-			DstURL:            *params.Data.DstURL,
-			Timeout:           params.Data.Timeout,
-			TimeoutNoprogress: params.Data.TimeoutNoprogress,
-		}
-
 		// set default job timeout (24 hours)
-		if j.Timeout <= 0 {
-			j.Timeout = 86400
+		timeout := params.Data.Timeout
+		if timeout <= 0 {
+			timeout = 86400
 		}
 
 		// set default job timeout no progress (1 hour)
-		if j.TimeoutNoprogress <= 0 {
-			j.TimeoutNoprogress = 3600
+		timeoutNp := params.Data.TimeoutNoprogress
+		if timeoutNp <= 0 {
+			timeoutNp = 3600
 		}
 
-		// publish data to queue
-		// 1. a big default job timeout of 7 days is set as the actual timeout
-		//    logic is handled by the worker using the `Timeout` attribute of
-		//    the job data.
-		// 2. after the job is finished, the retention time of the result is 3 days.
-		// 3. the default job max retries is defined by `MaxRetries`
-		tbok, err := bok.Queue(StagerJobQueueName).Publish(ctx, &j,
-			bokchoy.WithMaxRetries(MaxRetries),
-			bokchoy.WithRetryIntervals([]time.Duration{
-				time.Duration(RetryIntervalSeconds) * time.Second,
-			}),
-			bokchoy.WithTimeout(7*24*time.Hour),
-			bokchoy.WithTTL(3*24*time.Hour))
+		t, err := tasks.NewStagerTask(
+			*params.Data.Title,
+			*params.Data.DrUser,
+			*params.Data.DstURL,
+			*params.Data.SrcURL,
+			*params.Data.StagerUser,
+			timeout,
+			timeoutNp,
+		)
 
 		if err != nil {
 			return operations.NewPostJobInternalServerError().WithPayload(
@@ -233,7 +210,21 @@ func NewJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.Po
 			)
 		}
 
-		res, err := composeResponseBodyJobInfo(tbok)
+		taskInfo, err := client.EnqueueContext(ctx, t, asynq.Retention(2*24*time.Hour))
+
+		if err != nil {
+			log.Errorf("cannot enqueue task: %s", err)
+			return operations.NewPostJobInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobCreateError,
+				},
+			)
+		}
+
+		log.Infof("[%s] task submitted", taskInfo.ID)
+
+		res, err := composeResponseBodyJobInfo(taskInfo)
 		if err != nil {
 			log.Errorf("%s", err)
 			return operations.NewPostJobInternalServerError().WithPayload(
@@ -248,33 +239,23 @@ func NewJob(ctx context.Context, bok *bokchoy.Bokchoy) func(params operations.Po
 	}
 }
 
-func composeResponseBodyJobInfo(task *bokchoy.Task) (*models.ResponseBodyJobInfo, error) {
-	// convert Payload to models.JobData structure
-	res, err := json.Marshal(task.Payload)
-	if err != nil {
-		return nil, err
-	}
+func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.ResponseBodyJobInfo, error) {
 
-	var j job.Stager
-	err = json.Unmarshal(res, &j)
-	if err != nil {
+	var j tasks.StagerPayload
+	if err := json.Unmarshal(task.Payload, &j); err != nil {
 		return nil, err
 	}
 
 	// job status
-	jStatus := task.StatusDisplay()
+	jStatus := task.State.String()
 
-	// job progress
-	jProgress, err := resultToProgress(task.Result)
-	if err != nil {
-		return nil, err
+	// job result
+	var jResult tasks.StagerTaskResult
+	if err := json.Unmarshal(task.Result, &jResult); err != nil {
+		log.Warnf("cannot unmarshal payload result: %s", err)
 	}
 
-	// job error
-	jErr := ""
-	if task.Error != nil {
-		jErr = fmt.Sprintf("%s", task.Error)
-	}
+	log.Debugf("jResult: %+v", jResult)
 
 	// job identifier
 	jid := models.JobID(task.ID)
@@ -293,34 +274,10 @@ func composeResponseBodyJobInfo(task *bokchoy.Task) (*models.ResponseBodyJobInfo
 		Status: &models.JobStatus{
 			Status: &jStatus,
 			Progress: &models.JobProgress{
-				Total:     &jProgress.Total,
-				Processed: &jProgress.Processed,
+				Total:     &jResult.Progress.Total,
+				Processed: &jResult.Progress.Processed,
 			},
-			Error: &jErr,
+			Error: &jResult.Error,
 		},
 	}, nil
-}
-
-// resultToProgress convert any task result interface into job.Progress
-// structure.
-func resultToProgress(rslt interface{}) (*job.Progress, error) {
-	if rslt == nil {
-		return &job.Progress{
-			Total:     0,
-			Processed: 0,
-		}, nil
-	}
-
-	res, err := json.Marshal(rslt)
-	if err != nil {
-		return nil, err
-	}
-
-	var p job.Progress
-	err = json.Unmarshal(res, &p)
-	if err != nil {
-		return nil, err
-	}
-
-	return &p, nil
 }

@@ -15,13 +15,9 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
-	"github.com/go-redis/redis/v8"
+	"github.com/hibiken/asynq"
 	"github.com/s12v/go-jwks"
 	"github.com/square/go-jose"
-
-	"github.com/thoas/bokchoy"
-	"github.com/thoas/bokchoy/logging"
-	"github.com/thoas/bokchoy/middleware"
 
 	log "github.com/Donders-Institute/tg-toolset-golang/pkg/logger"
 )
@@ -80,10 +76,10 @@ func main() {
 		log.Fatalf("fail to load configuration: %s", *configFile)
 	}
 
-	// redis client instance for notifying cache update
-	redisOpts, err := redis.ParseURL(*redisURL)
+	// parse the redis URL to redis connection options
+	redisOpts, err := asynq.ParseRedisURI(*redisURL)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("cannot parse redis URL: %s", err)
 	}
 
 	// Initialize Swagger
@@ -116,28 +112,15 @@ func main() {
 	server.ListenLimit = 10
 	server.TLSListenLimit = 10
 
-	// initiate blochy queue for setting project roles
-	var logger logging.Logger
+	client := asynq.NewClient(redisOpts)
+	defer client.Close()
 
-	bok, err := bokchoy.New(ctx, bokchoy.Config{
-		Broker: bokchoy.BrokerConfig{
-			Type: "redis",
-			Redis: bokchoy.RedisConfig{
-				Type: "client",
-				Client: bokchoy.RedisClientConfig{
-					Addr: redisOpts.Addr,
-				},
-			},
-		},
-	}, bokchoy.WithLogger(logger), bokchoy.WithTTL(7*24*time.Hour))
+	inspector := asynq.NewInspector(redisOpts)
 
 	if err != nil {
 		log.Errorf("cannot connect to db: %s", err)
 		os.Exit(1)
 	}
-
-	bok.Use(middleware.Recoverer)
-	bok.Use(middleware.DefaultLogger)
 
 	// authentication with username/password.
 	api.BasicAuthAuth = func(username, password string) (*models.Principal, error) {
@@ -219,9 +202,9 @@ func main() {
 	}
 
 	api.GetPingHandler = operations.GetPingHandlerFunc(handler.GetPing(cfg))
-	api.GetJobIDHandler = operations.GetJobIDHandlerFunc(handler.GetJob(ctx, bok))
-	api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(handler.CancelJob(ctx, bok))
-	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, bok))
+	api.GetJobIDHandler = operations.GetJobIDHandlerFunc(handler.GetJob(ctx, inspector))
+	api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(handler.CancelJob(ctx, inspector))
+	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, client))
 
 	// configure API
 	server.ConfigureAPI()
