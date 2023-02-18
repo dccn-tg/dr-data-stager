@@ -110,7 +110,7 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 	for {
 		select {
 		case <-ctx.Done():
-			log.Warnf("fastWalk interrupted due to timeout")
+			log.Debugf("fastWalk aborted: %s", root)
 			return
 		default:
 			var errno int
@@ -305,7 +305,7 @@ func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files
 			// walk on sub-collection
 			s.collWalk(ctx, coll, files)
 		case <-ctx.Done():
-			log.Warnf("collWalk interrupted due to timeout")
+			log.Debugf("collWalk aborted")
 			return
 		}
 	}

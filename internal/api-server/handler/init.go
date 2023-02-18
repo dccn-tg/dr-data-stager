@@ -64,8 +64,7 @@ func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operati
 		id := params.ID
 
 		// retrieve task from the queue
-		taskInfo, err := inspector.GetTaskInfo("default", id)
-
+		taskInfo, err := findTask(inspector, id)
 		if err != nil {
 			log.Errorf("[%s] cannot get task: %s", id, err)
 			return operations.NewGetJobIDInternalServerError().WithPayload(
@@ -99,15 +98,15 @@ func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operati
 	}
 }
 
-// CancelJob cancels the job.
-func CancelJob(ctx context.Context, inspector *asynq.Inspector) func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
+// DeleteJob cancels the job.
+func DeleteJob(ctx context.Context, inspector *asynq.Inspector) func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
 
 	return func(params operations.DeleteJobIDParams, principal *models.Principal) middleware.Responder {
 
 		id := params.ID
 
 		// retrieve task from the queue
-		taskInfo, err := inspector.GetTaskInfo("default", id)
+		taskInfo, err := findTask(inspector, id)
 		if err != nil {
 			log.Errorf("[%s] error retrieve task info: %s", err)
 			return operations.NewDeleteJobIDInternalServerError().WithPayload(
@@ -138,8 +137,13 @@ func CancelJob(ctx context.Context, inspector *asynq.Inspector) func(params oper
 			)
 		}
 
+		// try to cancel the task before deleting it
 		if err := inspector.CancelProcessing(id); err != nil {
 			log.Errorf("[%s] cannot cancel task: %s", id, err)
+		}
+
+		if err := inspector.DeleteTask(taskInfo.Queue, id); err != nil {
+			log.Errorf("[%s] cannot delete task: %s", id, err)
 			return operations.NewDeleteJobIDInternalServerError().WithPayload(
 				&models.ResponseBody500{
 					ErrorMessage: err.Error(),
@@ -148,7 +152,7 @@ func CancelJob(ctx context.Context, inspector *asynq.Inspector) func(params oper
 			)
 		}
 
-		log.Infof("[%s] task cancelled", id)
+		log.Infof("[%s] task deleted", id)
 
 		jinfo, err := composeResponseBodyJobInfo(taskInfo)
 		if err != nil {
@@ -210,7 +214,12 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 			)
 		}
 
-		taskInfo, err := client.EnqueueContext(ctx, t, asynq.Retention(2*24*time.Hour))
+		taskInfo, err := client.EnqueueContext(
+			ctx,
+			t,
+			asynq.Retention(2*24*time.Hour),
+			asynq.MaxRetry(3),
+		)
 
 		if err != nil {
 			log.Errorf("cannot enqueue task: %s", err)
@@ -239,6 +248,18 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 	}
 }
 
+// findTask looks into different queues to retrieve the TaskInfo, or return an error if not found.
+func findTask(inspector *asynq.Inspector, id string) (*asynq.TaskInfo, error) {
+
+	for q := range tasks.StagerQueues {
+		if t, err := inspector.GetTaskInfo(q, id); err == nil {
+			return t, err
+		}
+	}
+
+	return nil, asynq.ErrTaskNotFound
+}
+
 func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.ResponseBodyJobInfo, error) {
 
 	var j tasks.StagerPayload
@@ -251,11 +272,11 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.ResponseBodyJobIn
 
 	// job result
 	var jResult tasks.StagerTaskResult
-	if err := json.Unmarshal(task.Result, &jResult); err != nil {
-		log.Warnf("cannot unmarshal payload result: %s", err)
+	if len(task.Result) != 0 {
+		if err := json.Unmarshal(task.Result, &jResult); err != nil {
+			log.Warnf("cannot unmarshal payload result: %s", err)
+		}
 	}
-
-	log.Debugf("jResult: %+v", jResult)
 
 	// job identifier
 	jid := models.JobID(task.ID)
@@ -277,7 +298,7 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.ResponseBodyJobIn
 				Total:     &jResult.Progress.Total,
 				Processed: &jResult.Progress.Processed,
 			},
-			Error: &jResult.Error,
+			Error: &task.LastErr,
 		},
 	}, nil
 }

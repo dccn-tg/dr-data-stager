@@ -186,7 +186,7 @@ func syncWorker(
 				success <- fsrc
 			}
 		case <-ctx.Done():
-			log.Warnf("sync worker interrupted due to timeout")
+			log.Debugf("sync worker aborted")
 			// task has been mark to done.
 			wg.Done()
 			return
@@ -268,7 +268,7 @@ func replWorker(
 				success <- f
 			}
 		case <-ctx.Done():
-			log.Warnf("repl worker interrupted due to timeout")
+			log.Debugf("repl worker aborted")
 			// task has been mark to done.
 			wg.Done()
 			return

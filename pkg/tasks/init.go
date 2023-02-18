@@ -8,6 +8,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
+	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
 	log "github.com/Donders-Institute/tg-toolset-golang/pkg/logger"
 )
 
@@ -15,6 +16,18 @@ import (
 const (
 	TypeStager  = "stager"
 	TypeEmailer = "email"
+)
+
+// Queues for different task types, with their associated task priority
+var (
+	StagerQueues = map[string]int{
+		"critical": 6,
+		"default":  3,
+		"low":      1,
+	}
+	EmailerQueues = map[string]int{
+		"default": 3,
+	}
 )
 
 // StagerPayload defines the data structure of the stager file transfer payload.
@@ -104,6 +117,13 @@ type Stager struct {
 }
 
 func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
+
+	updateRslt := func(rslt *StagerTaskResult) {
+		if d, err := json.Marshal(rslt); err == nil {
+			t.ResultWriter().Write(d)
+		}
+	}
+
 	var p StagerPayload
 
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
@@ -111,80 +131,93 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 	}
 	log.Debugf("[%s] payload: %+v", t.ResultWriter().TaskID(), p)
 
-	ticker := time.NewTicker(1 * time.Second)
-	stopMonitor := make(chan error, 1)
+	// setup child context to handle `timeoutNoprogress`
+	ctxnp, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	total := make(chan int64, 1)
-	processed := make(chan int64, 1)
+	timer := time.NewTimer(time.Duration(p.TimeoutNoprogress) * time.Second)
 
-	// progress monitor routine
-	go func() {
-		rslt := new(StagerTaskResult)
-		for {
-			select {
-			case total := <-total:
-				// update total steps
-				rslt.Progress.Total = total
-				if d, err := json.Marshal(rslt); err == nil {
-					t.ResultWriter().Write(d)
-				}
-			case processed := <-processed:
-				// update processed steps
-				rslt.Progress.Processed = int64(processed)
-				if d, err := json.Marshal(rslt); err == nil {
-					t.ResultWriter().Write(d)
-				}
-			case err := <-stopMonitor:
-				// stop monitor and write error to the task result
-				if err != nil {
-					rslt.Error = err.Error()
-					if d, err := json.Marshal(rslt); err == nil {
-						t.ResultWriter().Write(d)
-					}
-				}
-				return
-			case <-ticker.C:
-				// one second ticker
-			}
-		}
-	}()
+	// logic of performing data transfer.
+	srcPathInfo, err := ppath.GetPathInfo(ctxnp, p.SrcURL)
+	if err != nil {
+		log.Errorf("[%s] %s", t.ResultWriter().TaskID(), err)
+		return fmt.Errorf("invalid source url: %s", err)
+	}
 
-	// task processing routine
-	done := make(chan error, 1)
-	go func() {
-
-		log.Debugf("[%s] started", t.ResultWriter().TaskID())
-
-		time.Sleep(30 * time.Second)
-		total <- int64(100) // total steps are resolved
-
-		i := 0
-		for {
-
-			if i == 100 { // all steps are processed
-				break
-			}
-
-			// emulating step processing
-			i++
-			time.Sleep(2 * time.Second)
-			processed <- int64(i)
-		}
-
-		log.Debugf("[%s] finished", t.ResultWriter().TaskID())
-
-		// stop ticker
-		ticker.Stop()
-		done <- nil
-	}()
-
-	select {
-	case <-ctx.Done():
-		stopMonitor <- fmt.Errorf("task cancelled")
-		return ctx.Err()
-	case err := <-done:
-		stopMonitor <- err
+	nf, err := ppath.GetNumberOfFiles(ctxnp, srcPathInfo)
+	if err != nil {
 		return err
+	}
+
+	rslt := new(StagerTaskResult)
+	if nf == 0 {
+		log.Warnf("[%s] %s is empty. Nothing to sync.", t.ResultWriter().TaskID(), p.SrcURL)
+		updateRslt(rslt)
+		return nil
+	}
+
+	// update total steps
+	rslt.Progress.Total = int64(nf)
+	updateRslt(rslt)
+
+	dstPathInfo, _ := ppath.GetPathInfo(ctxnp, p.DstURL)
+
+	success, failure := ppath.ScanAndSync(ctxnp, srcPathInfo, dstPathInfo, 4)
+
+	var c int64 = 0
+	var e ppath.SyncError
+	ok1, ok2 := false, false
+	for {
+		ok1, ok2 = true, true
+		// handle a successful transfer
+		select {
+		case _, ok1 = <-success:
+			if ok1 {
+				// stop timer
+				if !timer.Stop() {
+					<-timer.C
+				}
+
+				// increase the counter by 1, and update the queue data
+				c++
+				rslt.Progress.Processed = c
+				updateRslt(rslt)
+
+				// reset timer
+				timer.Reset(time.Duration(p.TimeoutNoprogress) * time.Second)
+			}
+		default:
+		}
+
+		// handle a failed transfer
+		select {
+		case e, ok2 = <-failure:
+			if ok2 {
+				// append error of this attempt to the errors from previous attempts
+				return fmt.Errorf("%s: %s", e.File, e.Error.Error())
+			}
+		default:
+		}
+
+		// both `success` and `failure` channels are closed, indicating the transfer is
+		// completed.
+		if !ok1 && !ok2 {
+			log.Debugf("[%s] finished", t.ResultWriter().TaskID())
+			return nil
+		}
+
+		// handle `timeoutNoprogress` and abort signal from parent context
+		select {
+		case <-timer.C:
+			// reach the timer limit for the period of timeoutNoProgress
+			log.Errorf("[%s] no progress timeout", t.ResultWriter().TaskID())
+			return fmt.Errorf("no progress more than %d seconds", p.TimeoutNoprogress)
+		case <-ctx.Done():
+			// receive abort signal from parent context
+			log.Debugf("[%s] aborted", t.ResultWriter().TaskID())
+			return fmt.Errorf("received aborting signal: %w", asynq.SkipRetry)
+		default:
+		}
 	}
 }
 
@@ -198,5 +231,4 @@ type StagerTaskResult struct {
 		Total     int64 `json:"total"`
 		Processed int64 `json:"processes"`
 	} `json:"progress"`
-	Error string `json:"error"`
 }

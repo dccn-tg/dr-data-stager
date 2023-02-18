@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/hibiken/asynq"
 
@@ -69,14 +70,12 @@ func main() {
 		redisOpts,
 		asynq.Config{
 			// Specify how many concurrent workers to use
-			Concurrency: 4,
+			Concurrency: *nworkers,
 			// Optionally specify multiple queues with different priority.
-			Queues: map[string]int{
-				"critical": 6,
-				"default":  3,
-				"low":      1,
+			Queues: tasks.StagerQueues,
+			RetryDelayFunc: func(n int, e error, t *asynq.Task) time.Duration {
+				return time.Duration(n*30) * time.Second
 			},
-			// See the godoc for other configuration options
 		},
 	)
 
