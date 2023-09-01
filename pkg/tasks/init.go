@@ -9,7 +9,7 @@ import (
 	"github.com/hibiken/asynq"
 
 	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
-	log "github.com/Donders-Institute/tg-toolset-golang/pkg/logger"
+	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
 // A list of task types.

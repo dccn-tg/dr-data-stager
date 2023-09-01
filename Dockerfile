@@ -1,5 +1,5 @@
 # stage 0: compile go program
-FROM golang:1.16
+FROM golang:1.20
 RUN mkdir -p /tmp/data-stager
 WORKDIR /tmp/data-stager
 ADD internal ./internal
