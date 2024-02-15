@@ -1,16 +1,15 @@
 package path
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"unsafe"
 
+	"github.com/cyverse/go-irodsclient/fs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -63,6 +62,9 @@ type Scanner interface {
 	// For example, it can be that the Scanner is implemented to loop over a local filesystem using
 	// the `filepath.Walk`, while the `dirmaker` is implemented to create a remote iRODS collection.
 	ScanMakeDir(ctx context.Context, path string, buffer int, dirmaker *DirMaker) chan string
+
+	// CountFilesInDir counts number of files in a given directory
+	CountFilesInDir(ctx context.Context, dir string) int
 }
 
 // FileSystemScanner implements the `Scanner` interface for a POSIX-compliant filesystem.
@@ -88,6 +90,20 @@ func (s FileSystemScanner) ScanMakeDir(ctx context.Context, path string, buffer 
 	}()
 
 	return files
+}
+
+func (s FileSystemScanner) CountFilesInDir(ctx context.Context, dir string) int {
+
+	c := 0
+	files := make(chan string, 10000)
+	go func() {
+		s.fastWalk(ctx, dir, false, &files)
+		defer close(files)
+	}()
+	for range files {
+		c++
+	}
+	return c
 }
 
 // fastWalk uses linux specific way (i.e. syscall.SYS_GETDENT64) to walk through
@@ -195,8 +211,9 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 
 // IrodsCollectionScanner implements the `Scanner` interface for iRODS.
 type IrodsCollectionScanner struct {
-	base     string
-	dirmaker *DirMaker
+	FileSystem *fs.FileSystem
+	base       string
+	dirmaker   *DirMaker
 }
 
 // ScanMakeDir gets a list of data objects iteratively under a iRODS collection `path`, and performs
@@ -218,6 +235,19 @@ func (s IrodsCollectionScanner) ScanMakeDir(ctx context.Context, path string, bu
 	return files
 }
 
+func (s IrodsCollectionScanner) CountFilesInDir(ctx context.Context, dir string) int {
+	c := 0
+	files := make(chan string, 10000)
+	go func() {
+		s.collWalk(ctx, dir, &files)
+		defer close(files)
+	}()
+	for range files {
+		c++
+	}
+	return c
+}
+
 // escapeSpecialCharsGenQuery addes "\" in front of the known special characters
 // that cannot be passed to GenQuery directly.
 func (s IrodsCollectionScanner) escapeSpecialCharsGenQuery(p string) string {
@@ -237,74 +267,45 @@ func (s IrodsCollectionScanner) escapeSpecialCharsGenQuery(p string) string {
 // The caller is responsible for closing the `files` channel.
 func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files *chan string) {
 
-	// define the system command executor that is used for running the "iquest" command.
-	executor := func(cmdStr string, out *chan string, closeOut bool) {
-
-		// conditionally close the output channel before leaving the executor function.
-		defer func() {
-			if closeOut {
-				close(*out)
-			}
-		}()
-
-		cmd := exec.CommandContext(ctx, "bash", "-c", cmdStr)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Errorf("cannot pipe output: %s", err)
-			return
-		}
-
-		if err = cmd.Start(); err != nil {
-			log.Errorf("cannot start command: %s", err)
-			return
-		}
-
-		outScanner := bufio.NewScanner(stdout)
-		outScanner.Split(bufio.ScanLines)
-
-		for outScanner.Scan() {
-			// push to the channel `*out` only if the scanned text is not "CAT_NO_ROWS_FOUND".
-			if l := outScanner.Text(); !strings.Contains(l, "CAT_NO_ROWS_FOUND") {
-				*out <- l
-			}
-		}
-
-		if err = outScanner.Err(); err != nil {
-			log.Errorf("error reading output of iquest: %s", err)
-		}
-
-		// wait the cmd to finish and the IO pipes are closed.
-		// write out error if the command execution is failed.
-		if err = cmd.Wait(); err != nil {
-			log.Errorf("%s fail: %s", cmdStr, err)
-		}
+	entries, err := s.FileSystem.List(path)
+	if err != nil {
+		log.Error(err)
+		return
 	}
 
-	// list file objects and directly pass it to the `files` channel
-	cmdStr := fmt.Sprintf("iquest --no-page '%%s/%%s' \"select COLL_NAME,DATA_NAME where COLL_NAME = '%s'\"", s.escapeSpecialCharsGenQuery(path))
-	executor(cmdStr, files, false)
+	if len(entries) == 0 {
+		return
+	}
 
-	// iterate over sub-collections
-	chanColl := make(chan string)
-	cmdStr = fmt.Sprintf("iquest --no-page '%%s' \"select COLL_NAME where COLL_PARENT_NAME = '%s'\"", s.escapeSpecialCharsGenQuery(path))
-	go executor(cmdStr, &chanColl, true)
+	// push collection entries into channel
+	chanEntries := make(chan *fs.Entry, len(entries))
+	go func() {
+		defer close(chanEntries)
+		for _, entry := range entries {
+			chanEntries <- entry
+		}
+	}()
 
 	for {
 		select {
-		case coll, ok := <-chanColl:
-			if !ok {
-				// chanColl has been closed
+		case entry, more := <-chanEntries:
+			if !more {
+				// no more entries to handle
 				return
 			}
-			if s.dirmaker != nil {
-				// perform `MakeDir` with the `dirmaker`
-				if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(coll, s.base)); err != nil {
-					log.Errorf("Mkdir failure: %s", err.Error())
+			if entry.Type == fs.FileEntry {
+				*files <- entry.Path
+			} else {
+				if s.dirmaker != nil {
+					// perform `MakeDir` with the `dirmaker`
+					if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(entry.Path, s.base)); err != nil {
+						log.Errorf("Mkdir failure: %s", err.Error())
+					}
 				}
+				s.collWalk(ctx, entry.Path, files)
 			}
-			// walk on sub-collection
-			s.collWalk(ctx, coll, files)
 		case <-ctx.Done():
+			// aborted
 			log.Debugf("collWalk aborted")
 			return
 		}

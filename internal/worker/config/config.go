@@ -5,12 +5,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
 	"github.com/spf13/viper"
 )
 
 // Configuration is the data structure for marshaling the
 // config.yml file using the viper configuration framework.
 type Configuration struct {
+	Dr dr.Config
 }
 
 // LoadConfig reads configuration file `cpath` and returns the

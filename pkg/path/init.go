@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,51 +54,6 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 	return info, fmt.Errorf("file or directory not found: %s", path)
 }
 
-// GetNumberOfFiles get total number of files at or within the `path`.
-func GetNumberOfFiles(ctx context.Context, path PathInfo) (int, error) {
-
-	nf := 0
-
-	var cmds []string
-
-	if path.Mode.IsRegular() {
-		return 1, nil
-	}
-
-	// The path is a collection, use iquery to get number of files.
-	if path.Mode.IsDir() && path.Type == TypeIrods {
-		cmds = append(cmds,
-			fmt.Sprintf("iquest --no-page '%%s' \"SELECT DATA_NAME WHERE COLL_NAME = '%s'\" | wc -l", path.Path),
-			fmt.Sprintf("iquest --no-page '%%s/%%s' \"SELECT COLL_NAME,DATA_NAME WHERE COLL_NAME like '%s/%%'\" | wc -l", path.Path),
-		)
-	}
-
-	// The path is a filesystem directory, use command `find -type f` to get number of files.
-	if path.Mode.IsDir() && path.Type == TypeFileSystem {
-		cmds = append(cmds, fmt.Sprintf("find %s -type f | wc -l", path.Path))
-	}
-
-	// run commands to get total number of files within the path.
-	for _, cmd := range cmds {
-
-		// run the command through bash
-		out, err := exec.CommandContext(ctx, "bash", "-c", cmd).Output()
-		if err != nil {
-			return nf, fmt.Errorf("cannot count files: %s", err)
-		}
-
-		// remove the line ending "\n" from out
-		n, err := strconv.Atoi(strings.TrimSuffix(string(out), "\n"))
-		if err != nil {
-			return nf, fmt.Errorf("cannot count files: %s", err)
-		}
-
-		nf += n
-	}
-
-	return nf, nil
-}
-
 // ScanAndSync walks through the files retrieved from the `bufio.Scanner`,
 // sync each file from the `srcColl` collection to the `dstColl` collection.
 //
@@ -107,14 +62,14 @@ func GetNumberOfFiles(ctx context.Context, path PathInfo) (int, error) {
 //
 // Files being successfully synced will be returned as a map with key as the filename
 // and value as the checksum of the file.
-func ScanAndSync(ctx context.Context, src, dst PathInfo, nworkers int) (success chan string, failure chan SyncError) {
+func ScanAndSync(ctx context.Context, config config.Configuration, src, dst PathInfo, nworkers int) (success chan string, failure chan SyncError) {
 
 	success = make(chan string)
 	failure = make(chan SyncError)
 
 	// initiate a source scanner and performs the scan.
 	scanner := NewScanner(src)
-	dirmaker := NewDirMaker(dst)
+	dirmaker := NewDirMaker(dst, config)
 
 	files := scanner.ScanMakeDir(ctx, src.Path, nworkers*8, &dirmaker)
 

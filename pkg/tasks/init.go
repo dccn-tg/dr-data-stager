@@ -8,6 +8,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
+	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
@@ -95,6 +96,7 @@ func NewStagerTask(Title, DrUser, DstURL, SrcURL, StagerUser string, Timeout, Ti
 
 // Emailer implements asynq.Handler interface.
 type Emailer struct {
+	config config.Configuration
 }
 
 func (emailer *Emailer) ProcessTask(ctx context.Context, t *asynq.Task) error {
@@ -107,13 +109,16 @@ func (emailer *Emailer) ProcessTask(ctx context.Context, t *asynq.Task) error {
 	return nil
 }
 
-func NewEmailer() *Emailer {
+func NewEmailer(config config.Configuration) *Emailer {
 	// load mail server configuration
-	return &Emailer{}
+	return &Emailer{
+		config: config,
+	}
 }
 
 // Stager implements asynq.Handler interface.
 type Stager struct {
+	config config.Configuration
 }
 
 func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
@@ -144,10 +149,7 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("invalid source url: %s", err)
 	}
 
-	nf, err := ppath.GetNumberOfFiles(ctxnp, srcPathInfo)
-	if err != nil {
-		return err
-	}
+	nf := srcPathInfo.CountFiles(ctxnp)
 
 	rslt := new(StagerTaskResult)
 	if nf == 0 {
@@ -162,7 +164,7 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 
 	dstPathInfo, _ := ppath.GetPathInfo(ctxnp, p.DstURL)
 
-	success, failure := ppath.ScanAndSync(ctxnp, srcPathInfo, dstPathInfo, 4)
+	success, failure := ppath.ScanAndSync(ctxnp, stager.config, srcPathInfo, dstPathInfo, 4)
 
 	var c int64 = 0
 	var e ppath.SyncError
@@ -221,8 +223,10 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 	}
 }
 
-func NewStager() *Stager {
-	return &Stager{}
+func NewStager(config config.Configuration) *Stager {
+	return &Stager{
+		config: config,
+	}
 }
 
 // StagerTaskResult

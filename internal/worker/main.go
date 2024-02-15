@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	"github.com/hibiken/asynq"
 
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
@@ -60,6 +61,12 @@ func usage() {
 
 func main() {
 
+	// load global configuration
+	cfg, err := config.LoadConfig(*configFile)
+	if err != nil {
+		log.Fatalf("fail to load configuration: %s", *configFile)
+	}
+
 	// redis client instance for notifying cache update
 	redisOpts, err := asynq.ParseRedisURI(*redisURL)
 	if err != nil {
@@ -81,8 +88,8 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
-	mux.Handle(tasks.TypeStager, tasks.NewStager())
-	mux.Handle(tasks.TypeEmailer, tasks.NewEmailer())
+	mux.Handle(tasks.TypeStager, tasks.NewStager(cfg))
+	mux.Handle(tasks.TypeEmailer, tasks.NewEmailer(cfg))
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {
