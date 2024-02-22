@@ -46,3 +46,17 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
+
+  webui:
+    image: hibiken/asynqmon:${ASYNQMON_IMAGE_TAG:-latest}
+    command: --port 8081 --redis-url redis://db:6379
+    ports:
+      - ${ASYNQMON_EXTERNAL_PORT:-8081}:8081
+    depends_on:
+      - db
+      - api-server
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
