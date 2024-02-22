@@ -43,9 +43,9 @@ func clen(n []byte) int {
 func NewScanner(path PathInfo) Scanner {
 	switch path.Type {
 	case TypeIrods:
-		return IrodsCollectionScanner{base: path.Path}
+		return IrodsCollectionScanner{base: path}
 	default:
-		return FileSystemScanner{base: path.Path}
+		return FileSystemScanner{base: path}
 	}
 }
 
@@ -61,7 +61,7 @@ type Scanner interface {
 	//
 	// For example, it can be that the Scanner is implemented to loop over a local filesystem using
 	// the `filepath.Walk`, while the `dirmaker` is implemented to create a remote iRODS collection.
-	ScanMakeDir(ctx context.Context, path string, buffer int, dirmaker *DirMaker) chan string
+	ScanMakeDir(ctx context.Context, buffer int, dirmaker *DirMaker) chan string
 
 	// CountFilesInDir counts number of files in a given directory
 	CountFilesInDir(ctx context.Context, dir string) int
@@ -70,7 +70,7 @@ type Scanner interface {
 // FileSystemScanner implements the `Scanner` interface for a POSIX-compliant filesystem.
 type FileSystemScanner struct {
 	dirmaker *DirMaker
-	base     string
+	base     PathInfo
 }
 
 // ScanMakeDir gets a list of files iteratively under a file system `path`, and performs directory
@@ -78,15 +78,19 @@ type FileSystemScanner struct {
 //
 // The output is a string channel with the buffer size provided by the `buffer` argument.
 // Each element of the channel refers to a file path.  The channel is closed at the end of the scan.
-func (s FileSystemScanner) ScanMakeDir(ctx context.Context, path string, buffer int, dirmaker *DirMaker) chan string {
+func (s FileSystemScanner) ScanMakeDir(ctx context.Context, buffer int, dirmaker *DirMaker) chan string {
 
 	files := make(chan string, buffer)
 
 	s.dirmaker = dirmaker
 
 	go func() {
-		s.fastWalk(ctx, path, false, &files)
 		defer close(files)
+		if s.base.Mode.IsDir() {
+			s.fastWalk(ctx, s.base.Path, false, &files)
+		} else {
+			files <- s.base.Path
+		}
 	}()
 
 	return files
@@ -166,7 +170,7 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 					*files <- vpath
 				case syscall.DT_DIR:
 					// construct the directory to be created with dirmaker.
-					if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(vpath, s.base)); err != nil {
+					if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(vpath, s.base.Path)); err != nil {
 						log.Errorf("Mkdir failure: %s", err.Error())
 					}
 					s.fastWalk(ctx, vpath, followLink, files)
@@ -212,7 +216,7 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 // IrodsCollectionScanner implements the `Scanner` interface for iRODS.
 type IrodsCollectionScanner struct {
 	FileSystem *fs.FileSystem
-	base       string
+	base       PathInfo
 	dirmaker   *DirMaker
 }
 
@@ -221,14 +225,18 @@ type IrodsCollectionScanner struct {
 //
 // The output is a string channel with the buffer size provided by the `buffer` argument.
 // Each element of the channel refers to an iRODS data object.  The channel is closed at the end of the scan.
-func (s IrodsCollectionScanner) ScanMakeDir(ctx context.Context, path string, buffer int, dirmaker *DirMaker) chan string {
+func (s IrodsCollectionScanner) ScanMakeDir(ctx context.Context, buffer int, dirmaker *DirMaker) chan string {
 
 	files := make(chan string, buffer)
 
 	s.dirmaker = dirmaker
 
 	go func() {
-		s.collWalk(ctx, path, &files)
+		if s.base.Mode.IsDir() {
+			s.collWalk(ctx, s.base.Path, &files)
+		} else {
+			files <- s.base.Path
+		}
 		defer close(files)
 	}()
 
@@ -298,7 +306,7 @@ func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files
 			} else {
 				if s.dirmaker != nil {
 					// perform `MakeDir` with the `dirmaker`
-					if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(entry.Path, s.base)); err != nil {
+					if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(entry.Path, s.base.Path)); err != nil {
 						log.Errorf("Mkdir failure: %s", err.Error())
 					}
 				}

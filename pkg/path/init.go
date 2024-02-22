@@ -21,6 +21,8 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 
 	re := regexp.MustCompile(`^(i|irods):`)
 
+	var err error
+
 	if re.MatchString(path) {
 
 		ipath := strings.TrimSuffix(re.ReplaceAllString(path, ""), "/")
@@ -29,16 +31,18 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 		info.Type = TypeIrods
 
 		// check if the namespace refers to a file object.
-		if _, err := exec.CommandContext(ctx, "imeta", "ls", "-d", ipath).Output(); err == nil {
+		if _, err = exec.CommandContext(ctx, "imeta", "ls", "-d", ipath).Output(); err == nil {
 			info.Mode = 0
 			return info, nil
 		}
 
 		// check if the namespace refers to a collection object.
-		if _, err := exec.CommandContext(ctx, "imeta", "ls", "-C", ipath).Output(); err == nil {
+		if _, err = exec.CommandContext(ctx, "imeta", "ls", "-C", ipath).Output(); err == nil {
 			info.Mode = os.ModeDir
 			return info, nil
 		}
+
+		err = fmt.Errorf("data or collection not found: %s", info.Path)
 
 	} else {
 
@@ -49,9 +53,11 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 			info.Mode = fi.Mode()
 			return info, nil
 		}
+
+		err = fmt.Errorf("file or directory not found: %s", info.Path)
 	}
 
-	return info, fmt.Errorf("file or directory not found: %s", path)
+	return info, err
 }
 
 // ScanAndSync walks through the files retrieved from the `bufio.Scanner`,
@@ -62,16 +68,15 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 //
 // Files being successfully synced will be returned as a map with key as the filename
 // and value as the checksum of the file.
-func ScanAndSync(ctx context.Context, config config.Configuration, src, dst PathInfo, nworkers int) (success chan string, failure chan SyncError) {
+func ScanAndSync(ctx context.Context, config config.Configuration, src, dst PathInfo, nworkers int) (processed chan SyncError) {
 
-	success = make(chan string)
-	failure = make(chan SyncError)
+	processed = make(chan SyncError)
 
 	// initiate a source scanner and performs the scan.
 	scanner := NewScanner(src)
 	dirmaker := NewDirMaker(dst, config)
 
-	files := scanner.ScanMakeDir(ctx, src.Path, nworkers*8, &dirmaker)
+	files := scanner.ScanMakeDir(ctx, nworkers*8, &dirmaker)
 
 	// create worker group
 	var wg sync.WaitGroup
@@ -79,15 +84,14 @@ func ScanAndSync(ctx context.Context, config config.Configuration, src, dst Path
 
 	// spin off workers
 	for i := 1; i <= nworkers; i++ {
-		go syncWorker(ctx, i, &wg, src, dst, files, success, failure)
+		go syncWorker(ctx, i, &wg, src, dst, files, processed)
 	}
 
 	go func() {
 		// wait for all workers to finish.
 		wg.Wait()
-		// close success and failure channels.
-		close(success)
-		close(failure)
+		// close processed channels.
+		close(processed)
 	}()
 
 	return
@@ -99,8 +103,7 @@ func syncWorker(
 	wg *sync.WaitGroup,
 	src, dst PathInfo,
 	files chan string,
-	success chan string,
-	failure chan SyncError) {
+	processed chan SyncError) {
 
 	fsrcPrefix := ""
 	fdstPrefix := ""
@@ -115,10 +118,10 @@ func syncWorker(
 
 	for {
 		select {
-		case fsrc, ok := <-files:
+		case fsrc, more := <-files:
 
 			// files channel is closed.
-			if !ok {
+			if !more {
 				wg.Done()
 				return
 			}
@@ -132,13 +135,10 @@ func syncWorker(
 
 			log.Debugf("exec: %s %s", cmdExec, strings.Join(cmdArgs, " "))
 
-			if _, err := exec.CommandContext(ctx, cmdExec, cmdArgs...).Output(); err != nil {
-				failure <- SyncError{
-					File:  fsrc,
-					Error: fmt.Errorf("%s %s fail: %s", cmdExec, strings.Join(cmdArgs, " "), err),
-				}
-			} else {
-				success <- fsrc
+			_, err := exec.CommandContext(ctx, cmdExec, cmdArgs...).Output()
+			processed <- SyncError{
+				File:  fsrc,
+				Error: err,
 			}
 		case <-ctx.Done():
 			log.Debugf("sync worker aborted")
@@ -157,15 +157,14 @@ func syncWorker(
 //
 // Files being successfully synced will be returned as a map with key as the filename
 // and value as the checksum of the file.
-func ScanAndRepl(ctx context.Context, coll PathInfo, rescSrc, rescDst string, nworkers int) (success chan string, failure chan ReplError) {
+func ScanAndRepl(ctx context.Context, coll PathInfo, rescSrc, rescDst string, nworkers int) (processed chan ReplError) {
 
-	success = make(chan string)
-	failure = make(chan ReplError)
+	processed = make(chan ReplError)
 
 	// initiate a source scanner and performs the scan.
 	scanner := NewScanner(coll)
 
-	files := scanner.ScanMakeDir(ctx, coll.Path, 4096, nil)
+	files := scanner.ScanMakeDir(ctx, 4096, nil)
 
 	// create worker group
 	var wg sync.WaitGroup
@@ -173,15 +172,14 @@ func ScanAndRepl(ctx context.Context, coll PathInfo, rescSrc, rescDst string, nw
 
 	// spin off workers
 	for i := 1; i <= nworkers; i++ {
-		go replWorker(ctx, i, &wg, rescSrc, rescDst, files, success, failure)
+		go replWorker(ctx, i, &wg, rescSrc, rescDst, files, processed)
 	}
 
 	go func() {
 		// wait for all workers to finish.
 		wg.Wait()
 		// close success and failure channels.
-		close(success)
-		close(failure)
+		close(processed)
 	}()
 
 	return
@@ -193,8 +191,7 @@ func replWorker(
 	wg *sync.WaitGroup,
 	rescSrc, rescDst string,
 	files chan string,
-	success chan string,
-	failure chan ReplError) {
+	processed chan ReplError) {
 
 	for {
 		select {
@@ -214,13 +211,11 @@ func replWorker(
 
 			log.Debugf("exec: %s %s", cmdExec, strings.Join(cmdArgs, " "))
 
-			if _, err := exec.CommandContext(ctx, cmdExec, cmdArgs...).Output(); err != nil {
-				failure <- ReplError{
-					File:  f,
-					Error: fmt.Errorf("%s %s fail: %s", cmdExec, strings.Join(cmdArgs, " "), err),
-				}
-			} else {
-				success <- f
+			_, err := exec.CommandContext(ctx, cmdExec, cmdArgs...).Output()
+
+			processed <- ReplError{
+				File:  f,
+				Error: err,
 			}
 		case <-ctx.Done():
 			log.Debugf("repl worker aborted")

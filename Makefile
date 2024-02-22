@@ -12,7 +12,7 @@ endif
 
 all: build
 
-build: api-server worker
+build: api-server worker s-isync
 
 swagger:
 	swagger validate pkg/swagger/swagger.yaml
