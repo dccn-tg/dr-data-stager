@@ -26,3 +26,6 @@ api-server:
 
 worker:
 	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o bin/data-stager-worker internal/worker/main.go
+
+s-isync:
+	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o bin/s-isync internal/s-isync/main.go
