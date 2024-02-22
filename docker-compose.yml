@@ -30,13 +30,8 @@ services:
       target: worker
     image: ${DOCKER_REGISTRY:-dccn}/data-stager-worker:${DOCKER_IMAGE_TAG:-latest}
     user: root
-    environment:
-      - IRODS_HOST
-      - IRODS_PORT
-      - IRODS_ZONE_NAME
-      - IRODS_USER_NAME
     volumes:
-      - ${IRODS_ICAT_CERT:-/mnt/docker/scripts/microservices/data-stager/icat.pem}:/opt/irods/ssl/icat.pem
+      - ${IRODS_ICAT_CERT:-/mnt/docker/scripts/microservices/data-stager/icat.pem}:/opt/irods/ssl/icat.pem:ro
       - ${WORKER_CONFIG:-/mnt/docker/scripts/microservices/data-stager/worker.yml}:/etc/data-stager/config.yml:ro
     depends_on:
       - api-server
