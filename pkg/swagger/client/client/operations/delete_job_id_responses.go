@@ -48,7 +48,7 @@ func (o *DeleteJobIDReader) ReadResponse(response runtime.ClientResponse, consum
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[DELETE /job/{id}] DeleteJobID", response, response.Code())
 	}
 }
 
@@ -57,7 +57,8 @@ func NewDeleteJobIDOK() *DeleteJobIDOK {
 	return &DeleteJobIDOK{}
 }
 
-/* DeleteJobIDOK describes a response with status code 200, with default header values.
+/*
+DeleteJobIDOK describes a response with status code 200, with default header values.
 
 success
 */
@@ -65,9 +66,44 @@ type DeleteJobIDOK struct {
 	Payload *models.ResponseBodyJobInfo
 }
 
+// IsSuccess returns true when this delete job Id o k response has a 2xx status code
+func (o *DeleteJobIDOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this delete job Id o k response has a 3xx status code
+func (o *DeleteJobIDOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete job Id o k response has a 4xx status code
+func (o *DeleteJobIDOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this delete job Id o k response has a 5xx status code
+func (o *DeleteJobIDOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete job Id o k response a status code equal to that given
+func (o *DeleteJobIDOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the delete job Id o k response
+func (o *DeleteJobIDOK) Code() int {
+	return 200
+}
+
 func (o *DeleteJobIDOK) Error() string {
 	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdOK  %+v", 200, o.Payload)
 }
+
+func (o *DeleteJobIDOK) String() string {
+	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdOK  %+v", 200, o.Payload)
+}
+
 func (o *DeleteJobIDOK) GetPayload() *models.ResponseBodyJobInfo {
 	return o.Payload
 }
@@ -89,7 +125,8 @@ func NewDeleteJobIDBadRequest() *DeleteJobIDBadRequest {
 	return &DeleteJobIDBadRequest{}
 }
 
-/* DeleteJobIDBadRequest describes a response with status code 400, with default header values.
+/*
+DeleteJobIDBadRequest describes a response with status code 400, with default header values.
 
 bad request
 */
@@ -97,9 +134,44 @@ type DeleteJobIDBadRequest struct {
 	Payload *models.ResponseBody400
 }
 
+// IsSuccess returns true when this delete job Id bad request response has a 2xx status code
+func (o *DeleteJobIDBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete job Id bad request response has a 3xx status code
+func (o *DeleteJobIDBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete job Id bad request response has a 4xx status code
+func (o *DeleteJobIDBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete job Id bad request response has a 5xx status code
+func (o *DeleteJobIDBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete job Id bad request response a status code equal to that given
+func (o *DeleteJobIDBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
+// Code gets the status code for the delete job Id bad request response
+func (o *DeleteJobIDBadRequest) Code() int {
+	return 400
+}
+
 func (o *DeleteJobIDBadRequest) Error() string {
 	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdBadRequest  %+v", 400, o.Payload)
 }
+
+func (o *DeleteJobIDBadRequest) String() string {
+	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdBadRequest  %+v", 400, o.Payload)
+}
+
 func (o *DeleteJobIDBadRequest) GetPayload() *models.ResponseBody400 {
 	return o.Payload
 }
@@ -121,7 +193,8 @@ func NewDeleteJobIDNotFound() *DeleteJobIDNotFound {
 	return &DeleteJobIDNotFound{}
 }
 
-/* DeleteJobIDNotFound describes a response with status code 404, with default header values.
+/*
+DeleteJobIDNotFound describes a response with status code 404, with default header values.
 
 job not found
 */
@@ -129,9 +202,44 @@ type DeleteJobIDNotFound struct {
 	Payload string
 }
 
+// IsSuccess returns true when this delete job Id not found response has a 2xx status code
+func (o *DeleteJobIDNotFound) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete job Id not found response has a 3xx status code
+func (o *DeleteJobIDNotFound) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete job Id not found response has a 4xx status code
+func (o *DeleteJobIDNotFound) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete job Id not found response has a 5xx status code
+func (o *DeleteJobIDNotFound) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete job Id not found response a status code equal to that given
+func (o *DeleteJobIDNotFound) IsCode(code int) bool {
+	return code == 404
+}
+
+// Code gets the status code for the delete job Id not found response
+func (o *DeleteJobIDNotFound) Code() int {
+	return 404
+}
+
 func (o *DeleteJobIDNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdNotFound  %+v", 404, o.Payload)
 }
+
+func (o *DeleteJobIDNotFound) String() string {
+	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdNotFound  %+v", 404, o.Payload)
+}
+
 func (o *DeleteJobIDNotFound) GetPayload() string {
 	return o.Payload
 }
@@ -151,7 +259,8 @@ func NewDeleteJobIDInternalServerError() *DeleteJobIDInternalServerError {
 	return &DeleteJobIDInternalServerError{}
 }
 
-/* DeleteJobIDInternalServerError describes a response with status code 500, with default header values.
+/*
+DeleteJobIDInternalServerError describes a response with status code 500, with default header values.
 
 failure
 */
@@ -159,9 +268,44 @@ type DeleteJobIDInternalServerError struct {
 	Payload *models.ResponseBody500
 }
 
+// IsSuccess returns true when this delete job Id internal server error response has a 2xx status code
+func (o *DeleteJobIDInternalServerError) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete job Id internal server error response has a 3xx status code
+func (o *DeleteJobIDInternalServerError) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete job Id internal server error response has a 4xx status code
+func (o *DeleteJobIDInternalServerError) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this delete job Id internal server error response has a 5xx status code
+func (o *DeleteJobIDInternalServerError) IsServerError() bool {
+	return true
+}
+
+// IsCode returns true when this delete job Id internal server error response a status code equal to that given
+func (o *DeleteJobIDInternalServerError) IsCode(code int) bool {
+	return code == 500
+}
+
+// Code gets the status code for the delete job Id internal server error response
+func (o *DeleteJobIDInternalServerError) Code() int {
+	return 500
+}
+
 func (o *DeleteJobIDInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdInternalServerError  %+v", 500, o.Payload)
 }
+
+func (o *DeleteJobIDInternalServerError) String() string {
+	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdInternalServerError  %+v", 500, o.Payload)
+}
+
 func (o *DeleteJobIDInternalServerError) GetPayload() *models.ResponseBody500 {
 	return o.Payload
 }

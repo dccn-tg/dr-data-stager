@@ -44,7 +44,7 @@ type ClientService interface {
 }
 
 /*
-  DeleteJobID cancels a stager job
+DeleteJobID cancels a stager job
 */
 func (a *Client) DeleteJobID(params *DeleteJobIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteJobIDOK, error) {
 	// TODO: Validate the params before sending
@@ -83,7 +83,7 @@ func (a *Client) DeleteJobID(params *DeleteJobIDParams, authInfo runtime.ClientA
 }
 
 /*
-  GetJobID gets stager job information
+GetJobID gets stager job information
 */
 func (a *Client) GetJobID(params *GetJobIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobIDOK, error) {
 	// TODO: Validate the params before sending
@@ -122,7 +122,7 @@ func (a *Client) GetJobID(params *GetJobIDParams, authInfo runtime.ClientAuthInf
 }
 
 /*
-  GetJobsStatus gets list of jobs at given status
+GetJobsStatus gets list of jobs at given status
 */
 func (a *Client) GetJobsStatus(params *GetJobsStatusParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobsStatusOK, error) {
 	// TODO: Validate the params before sending
@@ -161,7 +161,7 @@ func (a *Client) GetJobsStatus(params *GetJobsStatusParams, authInfo runtime.Cli
 }
 
 /*
-  GetPing checks API server health
+GetPing checks API server health
 */
 func (a *Client) GetPing(params *GetPingParams, opts ...ClientOption) (*GetPingOK, error) {
 	// TODO: Validate the params before sending
@@ -199,7 +199,7 @@ func (a *Client) GetPing(params *GetPingParams, opts ...ClientOption) (*GetPingO
 }
 
 /*
-  PostJob creates a new stager job
+PostJob creates a new stager job
 */
 func (a *Client) PostJob(params *PostJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostJobOK, error) {
 	// TODO: Validate the params before sending

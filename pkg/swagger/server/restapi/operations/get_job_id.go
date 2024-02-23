@@ -31,10 +31,10 @@ func NewGetJobID(ctx *middleware.Context, handler GetJobIDHandler) *GetJobID {
 	return &GetJobID{Context: ctx, Handler: handler}
 }
 
-/* GetJobID swagger:route GET /job/{id} getJobId
+/*
+	GetJobID swagger:route GET /job/{id} getJobId
 
 get stager job information
-
 */
 type GetJobID struct {
 	Context *middleware.Context

@@ -52,10 +52,12 @@ func NewDeleteJobIDParamsWithHTTPClient(client *http.Client) *DeleteJobIDParams 
 	}
 }
 
-/* DeleteJobIDParams contains all the parameters to send to the API endpoint
-   for the delete job ID operation.
+/*
+DeleteJobIDParams contains all the parameters to send to the API endpoint
 
-   Typically these are written to a http.Request.
+	for the delete job ID operation.
+
+	Typically these are written to a http.Request.
 */
 type DeleteJobIDParams struct {
 

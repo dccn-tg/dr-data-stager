@@ -16,7 +16,8 @@ import (
 // PostJobOKCode is the HTTP code returned for type PostJobOK
 const PostJobOKCode int = 200
 
-/*PostJobOK success
+/*
+PostJobOK success
 
 swagger:response postJobOK
 */
@@ -60,7 +61,8 @@ func (o *PostJobOK) WriteResponse(rw http.ResponseWriter, producer runtime.Produ
 // PostJobInternalServerErrorCode is the HTTP code returned for type PostJobInternalServerError
 const PostJobInternalServerErrorCode int = 500
 
-/*PostJobInternalServerError failure
+/*
+PostJobInternalServerError failure
 
 swagger:response postJobInternalServerError
 */

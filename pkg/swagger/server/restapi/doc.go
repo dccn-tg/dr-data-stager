@@ -2,18 +2,18 @@
 
 // Package restapi dr-data-stager
 //
-//  Donders Repository data stager APIs
-//  Schemes:
-//    http
-//  Host: localhost
-//  BasePath: /v1
-//  Version: 0.1.0
+//	Donders Repository data stager APIs
+//	Schemes:
+//	  http
+//	Host: localhost
+//	BasePath: /v1
+//	Version: 0.1.0
 //
-//  Consumes:
-//    - application/json
+//	Consumes:
+//	  - application/json
 //
-//  Produces:
-//    - application/json
+//	Produces:
+//	  - application/json
 //
 // swagger:meta
 package restapi

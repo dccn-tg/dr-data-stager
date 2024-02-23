@@ -31,10 +31,10 @@ func NewGetJobsStatus(ctx *middleware.Context, handler GetJobsStatusHandler) *Ge
 	return &GetJobsStatus{Context: ctx, Handler: handler}
 }
 
-/* GetJobsStatus swagger:route GET /jobs/{status} getJobsStatus
+/*
+	GetJobsStatus swagger:route GET /jobs/{status} getJobsStatus
 
 get list of jobs at given status
-
 */
 type GetJobsStatus struct {
 	Context *middleware.Context

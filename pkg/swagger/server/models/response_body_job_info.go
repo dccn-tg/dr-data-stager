@@ -64,6 +64,8 @@ func (m *ResponseBodyJobInfo) validateData(formats strfmt.Registry) error {
 		if err := m.Data.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("data")
 			}
 			return err
 		}
@@ -86,6 +88,8 @@ func (m *ResponseBodyJobInfo) validateID(formats strfmt.Registry) error {
 		if err := m.ID.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("id")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("id")
 			}
 			return err
 		}
@@ -104,6 +108,8 @@ func (m *ResponseBodyJobInfo) validateStatus(formats strfmt.Registry) error {
 		if err := m.Status.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("status")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("status")
 			}
 			return err
 		}
@@ -137,9 +143,12 @@ func (m *ResponseBodyJobInfo) ContextValidate(ctx context.Context, formats strfm
 func (m *ResponseBodyJobInfo) contextValidateData(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Data != nil {
+
 		if err := m.Data.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("data")
 			}
 			return err
 		}
@@ -151,9 +160,12 @@ func (m *ResponseBodyJobInfo) contextValidateData(ctx context.Context, formats s
 func (m *ResponseBodyJobInfo) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.ID != nil {
+
 		if err := m.ID.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("id")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("id")
 			}
 			return err
 		}
@@ -165,9 +177,12 @@ func (m *ResponseBodyJobInfo) contextValidateID(ctx context.Context, formats str
 func (m *ResponseBodyJobInfo) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Status != nil {
+
 		if err := m.Status.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("status")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("status")
 			}
 			return err
 		}

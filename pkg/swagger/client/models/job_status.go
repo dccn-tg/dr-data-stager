@@ -75,6 +75,8 @@ func (m *JobStatus) validateProgress(formats strfmt.Registry) error {
 		if err := m.Progress.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("progress")
 			}
 			return err
 		}
@@ -152,9 +154,12 @@ func (m *JobStatus) ContextValidate(ctx context.Context, formats strfmt.Registry
 func (m *JobStatus) contextValidateProgress(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Progress != nil {
+
 		if err := m.Progress.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("progress")
 			}
 			return err
 		}

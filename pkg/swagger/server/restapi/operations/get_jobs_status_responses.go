@@ -16,7 +16,8 @@ import (
 // GetJobsStatusOKCode is the HTTP code returned for type GetJobsStatusOK
 const GetJobsStatusOKCode int = 200
 
-/*GetJobsStatusOK success
+/*
+GetJobsStatusOK success
 
 swagger:response getJobsStatusOK
 */
@@ -60,7 +61,8 @@ func (o *GetJobsStatusOK) WriteResponse(rw http.ResponseWriter, producer runtime
 // GetJobsStatusBadRequestCode is the HTTP code returned for type GetJobsStatusBadRequest
 const GetJobsStatusBadRequestCode int = 400
 
-/*GetJobsStatusBadRequest bad request
+/*
+GetJobsStatusBadRequest bad request
 
 swagger:response getJobsStatusBadRequest
 */
@@ -104,7 +106,8 @@ func (o *GetJobsStatusBadRequest) WriteResponse(rw http.ResponseWriter, producer
 // GetJobsStatusInternalServerErrorCode is the HTTP code returned for type GetJobsStatusInternalServerError
 const GetJobsStatusInternalServerErrorCode int = 500
 
-/*GetJobsStatusInternalServerError failure
+/*
+GetJobsStatusInternalServerError failure
 
 swagger:response getJobsStatusInternalServerError
 */

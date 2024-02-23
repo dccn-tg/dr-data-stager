@@ -36,7 +36,7 @@ func (o *PostJobReader) ReadResponse(response runtime.ClientResponse, consumer r
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /job] PostJob", response, response.Code())
 	}
 }
 
@@ -45,7 +45,8 @@ func NewPostJobOK() *PostJobOK {
 	return &PostJobOK{}
 }
 
-/* PostJobOK describes a response with status code 200, with default header values.
+/*
+PostJobOK describes a response with status code 200, with default header values.
 
 success
 */
@@ -53,9 +54,44 @@ type PostJobOK struct {
 	Payload *models.ResponseBodyJobInfo
 }
 
+// IsSuccess returns true when this post job o k response has a 2xx status code
+func (o *PostJobOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this post job o k response has a 3xx status code
+func (o *PostJobOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post job o k response has a 4xx status code
+func (o *PostJobOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this post job o k response has a 5xx status code
+func (o *PostJobOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post job o k response a status code equal to that given
+func (o *PostJobOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the post job o k response
+func (o *PostJobOK) Code() int {
+	return 200
+}
+
 func (o *PostJobOK) Error() string {
 	return fmt.Sprintf("[POST /job][%d] postJobOK  %+v", 200, o.Payload)
 }
+
+func (o *PostJobOK) String() string {
+	return fmt.Sprintf("[POST /job][%d] postJobOK  %+v", 200, o.Payload)
+}
+
 func (o *PostJobOK) GetPayload() *models.ResponseBodyJobInfo {
 	return o.Payload
 }
@@ -77,7 +113,8 @@ func NewPostJobInternalServerError() *PostJobInternalServerError {
 	return &PostJobInternalServerError{}
 }
 
-/* PostJobInternalServerError describes a response with status code 500, with default header values.
+/*
+PostJobInternalServerError describes a response with status code 500, with default header values.
 
 failure
 */
@@ -85,9 +122,44 @@ type PostJobInternalServerError struct {
 	Payload *models.ResponseBody500
 }
 
+// IsSuccess returns true when this post job internal server error response has a 2xx status code
+func (o *PostJobInternalServerError) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post job internal server error response has a 3xx status code
+func (o *PostJobInternalServerError) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post job internal server error response has a 4xx status code
+func (o *PostJobInternalServerError) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this post job internal server error response has a 5xx status code
+func (o *PostJobInternalServerError) IsServerError() bool {
+	return true
+}
+
+// IsCode returns true when this post job internal server error response a status code equal to that given
+func (o *PostJobInternalServerError) IsCode(code int) bool {
+	return code == 500
+}
+
+// Code gets the status code for the post job internal server error response
+func (o *PostJobInternalServerError) Code() int {
+	return 500
+}
+
 func (o *PostJobInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /job][%d] postJobInternalServerError  %+v", 500, o.Payload)
 }
+
+func (o *PostJobInternalServerError) String() string {
+	return fmt.Sprintf("[POST /job][%d] postJobInternalServerError  %+v", 500, o.Payload)
+}
+
 func (o *PostJobInternalServerError) GetPayload() *models.ResponseBody500 {
 	return o.Payload
 }

@@ -16,7 +16,8 @@ import (
 // GetJobIDOKCode is the HTTP code returned for type GetJobIDOK
 const GetJobIDOKCode int = 200
 
-/*GetJobIDOK success
+/*
+GetJobIDOK success
 
 swagger:response getJobIdOK
 */
@@ -60,7 +61,8 @@ func (o *GetJobIDOK) WriteResponse(rw http.ResponseWriter, producer runtime.Prod
 // GetJobIDBadRequestCode is the HTTP code returned for type GetJobIDBadRequest
 const GetJobIDBadRequestCode int = 400
 
-/*GetJobIDBadRequest bad request
+/*
+GetJobIDBadRequest bad request
 
 swagger:response getJobIdBadRequest
 */
@@ -104,7 +106,8 @@ func (o *GetJobIDBadRequest) WriteResponse(rw http.ResponseWriter, producer runt
 // GetJobIDNotFoundCode is the HTTP code returned for type GetJobIDNotFound
 const GetJobIDNotFoundCode int = 404
 
-/*GetJobIDNotFound job not found
+/*
+GetJobIDNotFound job not found
 
 swagger:response getJobIdNotFound
 */
@@ -146,7 +149,8 @@ func (o *GetJobIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtim
 // GetJobIDInternalServerErrorCode is the HTTP code returned for type GetJobIDInternalServerError
 const GetJobIDInternalServerErrorCode int = 500
 
-/*GetJobIDInternalServerError failure
+/*
+GetJobIDInternalServerError failure
 
 swagger:response getJobIdInternalServerError
 */

@@ -54,10 +54,12 @@ func NewPostJobParamsWithHTTPClient(client *http.Client) *PostJobParams {
 	}
 }
 
-/* PostJobParams contains all the parameters to send to the API endpoint
-   for the post job operation.
+/*
+PostJobParams contains all the parameters to send to the API endpoint
 
-   Typically these are written to a http.Request.
+	for the post job operation.
+
+	Typically these are written to a http.Request.
 */
 type PostJobParams struct {
 

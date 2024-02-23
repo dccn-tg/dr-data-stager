@@ -31,10 +31,10 @@ func NewDeleteJobID(ctx *middleware.Context, handler DeleteJobIDHandler) *Delete
 	return &DeleteJobID{Context: ctx, Handler: handler}
 }
 
-/* DeleteJobID swagger:route DELETE /job/{id} deleteJobId
+/*
+	DeleteJobID swagger:route DELETE /job/{id} deleteJobId
 
 cancel a stager job
-
 */
 type DeleteJobID struct {
 	Context *middleware.Context

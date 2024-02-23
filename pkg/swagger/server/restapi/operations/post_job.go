@@ -31,10 +31,10 @@ func NewPostJob(ctx *middleware.Context, handler PostJobHandler) *PostJob {
 	return &PostJob{Context: ctx, Handler: handler}
 }
 
-/* PostJob swagger:route POST /job postJob
+/*
+	PostJob swagger:route POST /job postJob
 
 create a new stager job
-
 */
 type PostJob struct {
 	Context *middleware.Context

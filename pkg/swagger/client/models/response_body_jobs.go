@@ -51,6 +51,8 @@ func (m *ResponseBodyJobs) validateJobs(formats strfmt.Registry) error {
 			if err := m.Jobs[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("jobs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("jobs" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -80,9 +82,16 @@ func (m *ResponseBodyJobs) contextValidateJobs(ctx context.Context, formats strf
 	for i := 0; i < len(m.Jobs); i++ {
 
 		if m.Jobs[i] != nil {
+
+			if swag.IsZero(m.Jobs[i]) { // not required
+				return nil
+			}
+
 			if err := m.Jobs[i].ContextValidate(ctx, formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("jobs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("jobs" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

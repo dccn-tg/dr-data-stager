@@ -285,8 +285,12 @@ func init() {
         "dstURL"
       ],
       "properties": {
+        "drPass": {
+          "description": "password of the DR data-access account",
+          "type": "string"
+        },
         "drUser": {
-          "description": "username of the DR account",
+          "description": "username of the DR data-access account",
           "type": "string"
         },
         "dstURL": {
@@ -704,8 +708,12 @@ func init() {
         "dstURL"
       ],
       "properties": {
+        "drPass": {
+          "description": "password of the DR data-access account",
+          "type": "string"
+        },
         "drUser": {
-          "description": "username of the DR account",
+          "description": "username of the DR data-access account",
           "type": "string"
         },
         "dstURL": {

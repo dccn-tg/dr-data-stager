@@ -16,7 +16,8 @@ import (
 // DeleteJobIDOKCode is the HTTP code returned for type DeleteJobIDOK
 const DeleteJobIDOKCode int = 200
 
-/*DeleteJobIDOK success
+/*
+DeleteJobIDOK success
 
 swagger:response deleteJobIdOK
 */
@@ -60,7 +61,8 @@ func (o *DeleteJobIDOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 // DeleteJobIDBadRequestCode is the HTTP code returned for type DeleteJobIDBadRequest
 const DeleteJobIDBadRequestCode int = 400
 
-/*DeleteJobIDBadRequest bad request
+/*
+DeleteJobIDBadRequest bad request
 
 swagger:response deleteJobIdBadRequest
 */
@@ -104,7 +106,8 @@ func (o *DeleteJobIDBadRequest) WriteResponse(rw http.ResponseWriter, producer r
 // DeleteJobIDNotFoundCode is the HTTP code returned for type DeleteJobIDNotFound
 const DeleteJobIDNotFoundCode int = 404
 
-/*DeleteJobIDNotFound job not found
+/*
+DeleteJobIDNotFound job not found
 
 swagger:response deleteJobIdNotFound
 */
@@ -146,7 +149,8 @@ func (o *DeleteJobIDNotFound) WriteResponse(rw http.ResponseWriter, producer run
 // DeleteJobIDInternalServerErrorCode is the HTTP code returned for type DeleteJobIDInternalServerError
 const DeleteJobIDInternalServerErrorCode int = 500
 
-/*DeleteJobIDInternalServerError failure
+/*
+DeleteJobIDInternalServerError failure
 
 swagger:response deleteJobIdInternalServerError
 */

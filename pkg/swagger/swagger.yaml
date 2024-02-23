@@ -216,7 +216,10 @@ definitions:
         description: username of stager's local account
         type: string
       drUser:
-        description: username of the DR account
+        description: username of the DR data-access account
+        type: string
+      drPass:
+        description: password of the DR data-access account
         type: string
       srcURL:
         description: path or DR namespace (prefixed with irods:) of the source endpoint

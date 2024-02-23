@@ -19,7 +19,10 @@ import (
 // swagger:model jobData
 type JobData struct {
 
-	// username of the DR account
+	// password of the DR data-access account
+	DrPass string `json:"drPass,omitempty"`
+
+	// username of the DR data-access account
 	// Required: true
 	DrUser *string `json:"drUser"`
 
