@@ -299,6 +299,7 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.ResponseBodyJobIn
 			Progress: &models.JobProgress{
 				Total:     &jResult.Progress.Total,
 				Processed: &jResult.Progress.Processed,
+				Failed:    &jResult.Progress.Failed,
 			},
 			Error: &task.LastErr,
 		},

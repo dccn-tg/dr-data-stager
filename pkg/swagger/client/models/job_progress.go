@@ -19,6 +19,10 @@ import (
 // swagger:model jobProgress
 type JobProgress struct {
 
+	// number of failed files
+	// Required: true
+	Failed *int64 `json:"failed"`
+
 	// number of processed files
 	// Required: true
 	Processed *int64 `json:"processed"`
@@ -32,6 +36,10 @@ type JobProgress struct {
 func (m *JobProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateFailed(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateProcessed(formats); err != nil {
 		res = append(res, err)
 	}
@@ -43,6 +51,15 @@ func (m *JobProgress) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *JobProgress) validateFailed(formats strfmt.Registry) error {
+
+	if err := validate.Required("failed", "body", m.Failed); err != nil {
+		return err
+	}
+
 	return nil
 }
 

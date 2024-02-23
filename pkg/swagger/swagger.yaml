@@ -271,9 +271,13 @@ definitions:
       processed:
         description: number of processed files
         type: integer
+      failed:
+        description: number of failed files
+        type: integer
     required:
       - total
       - processed
+      - failed
 
   principal:
     description: authenticated client identifier

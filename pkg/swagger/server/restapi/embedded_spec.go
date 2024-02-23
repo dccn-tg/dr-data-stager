@@ -327,9 +327,14 @@ func init() {
       "description": "job progress information",
       "required": [
         "total",
-        "processed"
+        "processed",
+        "failed"
       ],
       "properties": {
+        "failed": {
+          "description": "number of failed files",
+          "type": "integer"
+        },
         "processed": {
           "description": "number of processed files",
           "type": "integer"
@@ -750,9 +755,14 @@ func init() {
       "description": "job progress information",
       "required": [
         "total",
-        "processed"
+        "processed",
+        "failed"
       ],
       "properties": {
+        "failed": {
+          "description": "number of failed files",
+          "type": "integer"
+        },
         "processed": {
           "description": "number of processed files",
           "type": "integer"
