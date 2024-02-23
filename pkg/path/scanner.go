@@ -169,9 +169,11 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 				case syscall.DT_REG:
 					*files <- vpath
 				case syscall.DT_DIR:
-					// construct the directory to be created with dirmaker.
-					if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(vpath, s.base.Path)); err != nil {
-						log.Errorf("Mkdir failure: %s", err.Error())
+					// construct the directory to be created with dirmaker if it is set (i.e. not `nil`)
+					if s.dirmaker != nil {
+						if err := (*s.dirmaker).Mkdir(ctx, strings.TrimPrefix(vpath, s.base.Path)); err != nil {
+							log.Errorf("Mkdir failure: %s", err.Error())
+						}
 					}
 					s.fastWalk(ctx, vpath, followLink, files)
 				case syscall.DT_LNK:
@@ -306,7 +308,7 @@ func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files
 			} else {
 				if s.dirmaker != nil {
 					// perform `MakeDir` with the `dirmaker`
-					if err := (*s.dirmaker).Mkdir(strings.TrimPrefix(entry.Path, s.base.Path)); err != nil {
+					if err := (*s.dirmaker).Mkdir(ctx, strings.TrimPrefix(entry.Path, s.base.Path)); err != nil {
 						log.Errorf("Mkdir failure: %s", err.Error())
 					}
 				}

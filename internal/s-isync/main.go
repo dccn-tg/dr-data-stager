@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"os/user"
 	"syscall"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
+	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
+	"github.com/Donders-Institute/dr-data-stager/pkg/errors"
 	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
@@ -18,10 +21,10 @@ var (
 	optsVerbose bool   = false
 	nworkers    int    = 4
 	taskID      string = "0000-0000-0000-0000"
+	logFile     string = "/opt/stager/log/s-isync.log"
 	configFile  string = os.Getenv("STAGER_WORKER_CONFIG")
 	drUser      string = "stager@ru.nl"
 	drPass      string
-	stagerUser  string = "root"
 	srcPath     string
 	dstPath     string
 )
@@ -30,10 +33,10 @@ func init() {
 	flag.BoolVar(&optsVerbose, "v", optsVerbose, "print debug messages")
 	flag.IntVar(&nworkers, "p", nworkers, "`number` of global concurrent workers")
 	flag.StringVar(&configFile, "c", configFile, "configurateion file `path`")
+	flag.StringVar(&logFile, "l", logFile, "log file `path`")
 	flag.StringVar(&taskID, "task", taskID, "stager task `id`")
 	flag.StringVar(&drUser, "druser", drUser, "(R)DR data-access `username`")
 	flag.StringVar(&drPass, "drpass", drPass, "(R)DR data-access `password`")
-	flag.StringVar(&stagerUser, "user", stagerUser, "stager service local `username`")
 
 	flag.Usage = usage
 
@@ -45,7 +48,7 @@ func init() {
 		ConsoleLevel:      log.Info,
 		EnableFile:        true,
 		FileJSONFormat:    false,
-		FileLocation:      "log/s-isync.log",
+		FileLocation:      logFile,
 		FileLevel:         log.Info,
 	}
 
@@ -60,8 +63,8 @@ func init() {
 	// check if both source and destination paths are provided
 	args := flag.Args()
 	if len(args) != 2 {
-		usage()
-		log.Fatalf("invalid source and desitnation paths.")
+		fmt.Fprintf(os.Stderr, "insufficient arguments for source and destination")
+		os.Exit(128) // invalid argument
 	}
 
 	srcPath = args[0]
@@ -78,35 +81,44 @@ func usage() {
 
 func main() {
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = context.WithValue(ctx, dr.KeyCredential, dr.NewCredential(drUser, drPass))
 
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		cancelFunc()
+		cancel()
 	}()
 
 	// load global configuration
 	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
-		log.Fatalf("fail to load configuration: %s", configFile)
+		fmt.Fprintf(os.Stderr, "fail to load configuration: %s", configFile)
+		os.Exit(128) // invalid argument
 	}
 
-	if err := doSomthing(ctx, cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+	if err := run(ctx, cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		// TODO: define proper exit code based on the error type.
+		os.Exit(err.ExitCode())
 	}
 
 }
 
-func doSomthing(ctx context.Context, cfg config.Configuration) error {
+func run(ctx context.Context, cfg config.Configuration) *errors.IsyncError {
 
-	log.Infof("[%s] [%s,%s] %s --> %s\n", taskID, stagerUser, drUser, srcPath, dstPath)
+	user, err := user.Current()
+	if err != nil {
+		return errors.ToIsyncError(126, err.Error())
+	}
+
+	log.Infof("[%s] [%s,%s] %s --> %s\n", taskID, user.Username, drUser, srcPath, dstPath)
 
 	// logic of performing data transfer.
 	srcPathInfo, err := ppath.GetPathInfo(ctx, srcPath)
 	if err != nil {
-		return fmt.Errorf("invalid source url: %s", err)
+		return errors.ToIsyncError(128, err.Error())
 	}
 
 	total := srcPathInfo.CountFiles(ctx)
@@ -134,7 +146,7 @@ func doSomthing(ctx context.Context, cfg config.Configuration) error {
 			if e.Error != nil { // something went wrong
 				nfailure++
 				fmt.Printf("%d,%d,%d\n", total, nsuccess, nfailure)
-				return fmt.Errorf("%s: %s", e.File, e.Error.Error())
+				return errors.ToIsyncError(1, e.Error.Error())
 			}
 
 			// increase the counter by 1, and update the queue data
@@ -143,7 +155,7 @@ func doSomthing(ctx context.Context, cfg config.Configuration) error {
 
 		case <-ctx.Done():
 			// receive abort signal from parent context
-			return fmt.Errorf("aborting task due to context signal")
+			return errors.ToIsyncError(130, "aborted by task")
 		}
 	}
 }

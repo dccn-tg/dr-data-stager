@@ -1,15 +1,20 @@
 package tasks
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os/exec"
+	"os/user"
+	"strconv"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/hibiken/asynq"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
-	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
@@ -17,6 +22,7 @@ import (
 const (
 	TypeStager  = "stager"
 	TypeEmailer = "email"
+	keyTaskID   = int8(0)
 )
 
 // Queues for different task types, with their associated task priority
@@ -36,8 +42,11 @@ type StagerPayload struct {
 	// short description about the job
 	Title string `json:"title"`
 
-	// username of the DR account
+	// username of the DR data-access account
 	DrUser string `json:"drUser"`
+
+	// password of the DR data-access account
+	DrPass string `json:"drPass"`
 
 	// path or DR namespace (prefixed with irods:) of the destination endpoint
 	DstURL string `json:"dstURL"`
@@ -72,10 +81,11 @@ func NewEmailNotifyTask(Recipients []string, Message string) (*asynq.Task, error
 	return asynq.NewTask(TypeEmailer, payload), nil
 }
 
-func NewStagerTask(Title, DrUser, DstURL, SrcURL, StagerUser string, Timeout, TimeoutNoprogress int64) (*asynq.Task, error) {
+func NewStagerTask(Title, DrUser, DrPass, DstURL, SrcURL, StagerUser string, Timeout, TimeoutNoprogress int64) (*asynq.Task, error) {
 	payload, err := json.Marshal(StagerPayload{
 		Title:             Title,
 		DrUser:            DrUser,
+		DrPass:            DrPass,
 		DstURL:            DstURL,
 		SrcURL:            SrcURL,
 		StagerUser:        StagerUser,
@@ -136,91 +146,182 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 	}
 	log.Debugf("[%s] payload: %+v", t.ResultWriter().TaskID(), p)
 
-	// setup child context to handle `timeoutNoprogress`
-	ctxnp, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	timer := time.NewTimer(time.Duration(p.TimeoutNoprogress) * time.Second)
 
-	// logic of performing data transfer.
-	srcPathInfo, err := ppath.GetPathInfo(ctxnp, p.SrcURL)
+	cout, cerr, cmd, err := runSyncAs(
+		context.WithValue(ctx, keyTaskID, t.ResultWriter().TaskID()),
+		p,
+	)
 	if err != nil {
 		log.Errorf("[%s] %s", t.ResultWriter().TaskID(), err)
-		return fmt.Errorf("invalid source url: %s", err)
+		return err
 	}
 
-	nf := srcPathInfo.CountFiles(ctxnp)
+	done := make(chan error, 1)
+	// go routine to process error and wait for the runSyncAs process to finish
+	go func() {
+		defer close(done)
+
+		var lastErr string
+		for msg := range cerr {
+			lastErr = msg
+		}
+
+		if e := cmd.Wait(); e != nil {
+			// capture the last error message as the task error
+			done <- fmt.Errorf(lastErr)
+		} else {
+			done <- e
+		}
+	}()
 
 	rslt := new(StagerTaskResult)
-	if nf == 0 {
-		log.Warnf("[%s] %s is empty. Nothing to sync.", t.ResultWriter().TaskID(), p.SrcURL)
-		updateRslt(rslt)
-		return nil
-	}
-
-	// update total steps
-	rslt.Progress.Total = int64(nf)
-	updateRslt(rslt)
-
-	dstPathInfo, _ := ppath.GetPathInfo(ctxnp, p.DstURL)
-
-	success, failure := ppath.ScanAndSync(ctxnp, stager.config, srcPathInfo, dstPathInfo, 4)
-
-	var c int64 = 0
-	var e ppath.SyncError
-	ok1, ok2 := false, false
 	for {
-		ok1, ok2 = true, true
-		// handle a successful transfer
 		select {
-		case _, ok1 = <-success:
-			if ok1 {
-				// stop timer
-				if !timer.Stop() {
-					<-timer.C
-				}
-
-				// increase the counter by 1, and update the queue data
-				c++
-				rslt.Progress.Processed = c
-				updateRslt(rslt)
-
-				// reset timer
-				timer.Reset(time.Duration(p.TimeoutNoprogress) * time.Second)
+		case err := <-done:
+			if err != nil {
+				log.Errorf("[%s] s-isync failed (%s)", t.ResultWriter().TaskID(), err)
 			}
-		default:
-		}
+			return err
+		case progress, more := <-cout: // handle the output of a processed file
 
-		// handle a failed transfer
-		select {
-		case e, ok2 = <-failure:
-			if ok2 {
-				// append error of this attempt to the errors from previous attempts
-				return fmt.Errorf("%s: %s", e.File, e.Error.Error())
+			if !more {
+				// don't break the loop here
+				continue
 			}
-		default:
-		}
 
-		// both `success` and `failure` channels are closed, indicating the transfer is
-		// completed.
-		if !ok1 && !ok2 {
-			log.Debugf("[%s] finished", t.ResultWriter().TaskID())
-			return nil
-		}
+			// stop timer
+			if !timer.Stop() {
+				<-timer.C
+			}
 
-		// handle `timeoutNoprogress` and abort signal from parent context
-		select {
+			// increase the counter by 1, and update the queue data
+			rslt.Progress.Total = progress.Total
+			rslt.Progress.Processed = progress.Success + progress.Failure
+			rslt.Progress.Failed = progress.Failure
+
+			log.Debugf("[%s] %d/%d processed", t.ResultWriter().TaskID(), rslt.Progress.Processed, rslt.Progress.Total)
+
+			updateRslt(rslt)
+
+			// reset timer
+			timer.Reset(time.Duration(p.TimeoutNoprogress) * time.Second)
+
 		case <-timer.C:
-			// reach the timer limit for the period of timeoutNoProgress
-			log.Errorf("[%s] no progress timeout", t.ResultWriter().TaskID())
-			return fmt.Errorf("no progress more than %d seconds", p.TimeoutNoprogress)
+			// receive times up signal for `timeoutNoprogress`
+			err := fmt.Errorf("no progress more than %d seconds", p.TimeoutNoprogress)
+			log.Errorf("[%s] %s", t.ResultWriter().TaskID(), err)
+
+			// send kill to the cmd's process
+			if err := cmd.Process.Kill(); err != nil {
+				log.Errorf("[%s] fail to terminate s-isync: %s", t.ResultWriter().TaskID(), err)
+			}
+
+			return err
+
 		case <-ctx.Done():
 			// receive abort signal from parent context
-			log.Debugf("[%s] aborted", t.ResultWriter().TaskID())
-			return fmt.Errorf("received aborting signal: %w", asynq.SkipRetry)
-		default:
+			err := fmt.Errorf("aborted by context")
+			log.Debugf("[%s] %s", t.ResultWriter().TaskID(), err)
+
+			// send kill to the cmd's process
+			if err := cmd.Process.Kill(); err != nil {
+				log.Errorf("[%s] fail to terminate s-isync: %s", t.ResultWriter().TaskID(), err)
+			}
+
+			return err
 		}
 	}
+}
+
+// progress stores total number of processed files.
+type progress struct {
+	Total   int64
+	Success int64
+	Failure int64
+}
+
+// runSyncAs runs `s-isync` as the `stagerUser` in a go routine.
+func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan string, *exec.Cmd, error) {
+
+	tid := ctx.Value(keyTaskID).(string)
+
+	u, err := user.Lookup(payload.StagerUser)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	uid, _ := strconv.ParseInt(u.Uid, 10, 32)
+	gid, _ := strconv.ParseInt(u.Gid, 10, 32)
+
+	cmd := exec.Command(
+		"/opt/stager/s-isync",
+		"-v",
+		"-c", "/etc/stager/worker.yml",
+		"-l", fmt.Sprintf("/tmp/s-isync-%s.log", tid),
+		"--druser", payload.DrUser,
+		"--drpass", payload.DrPass,
+		payload.SrcURL,
+		payload.DstURL,
+	)
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{}
+	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, nil, cmd, err
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, nil, cmd, err
+	}
+
+	log.Debugf("[%s] run s-isync as %s (%d:%d)\n", tid, payload.StagerUser, uid, gid)
+	if err := cmd.Start(); err != nil {
+		return nil, nil, cmd, err
+	}
+
+	cout := make(chan progress, 1)
+	// go routine to read and process the stdout of s-irsync (progress information)
+	go func() {
+		defer close(cout)
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			data := strings.Split(line, ",")
+
+			if len(data) != 3 {
+				log.Errorf("unexpected progress output: %s", string(line))
+				continue
+			}
+
+			t, _ := strconv.ParseInt(data[0], 10, 64)
+			s, _ := strconv.ParseInt(data[1], 10, 64)
+			f, _ := strconv.ParseInt(data[2], 10, 64)
+
+			cout <- progress{
+				Total:   t,
+				Success: s,
+				Failure: f,
+			}
+		}
+	}()
+
+	cerr := make(chan string, 1)
+	// go routine to read and process the stderr
+	go func() {
+		defer close(cerr)
+
+		// read stderr
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			cerr <- strings.TrimSpace(scanner.Text())
+		}
+	}()
+
+	return cout, cerr, cmd, nil
 }
 
 func NewStager(config config.Configuration) *Stager {
@@ -234,5 +335,6 @@ type StagerTaskResult struct {
 	Progress struct {
 		Total     int64 `json:"total"`
 		Processed int64 `json:"processes"`
+		Failed    int64 `json:"failed"`
 	} `json:"progress"`
 }

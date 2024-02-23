@@ -1,6 +1,7 @@
 package path
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,7 +30,7 @@ func NewDirMaker(path PathInfo, config config.Configuration) DirMaker {
 
 // DirMaker defines interface for implementing directory creation in local filesystem and iRODS.
 type DirMaker interface {
-	Mkdir(path string) error
+	Mkdir(ctx context.Context, path string) error
 }
 
 // FileSystemDirMaker implements the DirMaker for local filesystem.
@@ -39,7 +40,7 @@ type FileSystemDirMaker struct {
 }
 
 // Mkdir ensures the directory referred by the path is created.
-func (m FileSystemDirMaker) Mkdir(path string) error {
+func (m FileSystemDirMaker) Mkdir(ctx context.Context, path string) error {
 
 	if !strings.HasPrefix(path, m.base) {
 		path = filepath.Join(m.base, path)
@@ -58,7 +59,7 @@ type IrodsCollectionMaker struct {
 }
 
 // Mkdir ensures the iRODS collection referred by the path is created.
-func (m IrodsCollectionMaker) Mkdir(coll string) error {
+func (m IrodsCollectionMaker) Mkdir(ctx context.Context, coll string) error {
 
 	// trim the possible leading `i:` used in the syntax of "irsync" for referring to iRODS namespace.
 	coll = strings.TrimPrefix(coll, "i:")
@@ -70,7 +71,16 @@ func (m IrodsCollectionMaker) Mkdir(coll string) error {
 	log.Debugf("creating collection %s", coll)
 
 	// try to initialize the filesystem if it is not available
-	fsys, err := dr.NewFileSystem("collMaker", m.config)
+	cfg := m.config
+
+	// credential in current context is not the same as the service-account credential
+	// defined in the config.
+	if u := ctx.Value(dr.KeyCredential).(dr.Credential).Username(); u != cfg.IrodsUser {
+		cfg.IrodsUser = u
+		cfg.IrodsPass = ctx.Value(dr.KeyCredential).(dr.Credential).Password()
+	}
+
+	fsys, err := dr.NewFileSystem("collMaker", cfg)
 	if err != nil {
 		return err
 	}

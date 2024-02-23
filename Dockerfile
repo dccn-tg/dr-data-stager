@@ -35,4 +35,5 @@ FROM base as worker
 WORKDIR /opt/stager
 RUN ( mkdir -p /opt/irods/ssl )
 COPY --from=0 /tmp/data-stager/bin/data-stager-worker .
+COPY --from=0 /tmp/data-stager/bin/s-isync .
 ENTRYPOINT ["./data-stager-worker"]

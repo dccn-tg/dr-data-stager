@@ -198,6 +198,7 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 		t, err := tasks.NewStagerTask(
 			*params.Data.Title,
 			*params.Data.DrUser,
+			params.Data.DrPass,
 			*params.Data.DstURL,
 			*params.Data.SrcURL,
 			*params.Data.StagerUser,
@@ -219,6 +220,7 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 			t,
 			asynq.Retention(2*24*time.Hour),
 			asynq.MaxRetry(3),
+			asynq.Timeout(time.Duration(timeout)*time.Second), // this set the hard timeout
 		)
 
 		if err != nil {
