@@ -219,7 +219,7 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 			ctx,
 			t,
 			asynq.Retention(2*24*time.Hour),
-			asynq.MaxRetry(3),
+			asynq.MaxRetry(4),
 			asynq.Timeout(time.Duration(timeout)*time.Second), // this set the hard timeout
 		)
 
