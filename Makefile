@@ -29,3 +29,6 @@ worker:
 
 s-isync:
 	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o bin/s-isync internal/s-isync/main.go
+
+test_crypto:
+	@GOPATH=$(GOPATH) GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go test -v github.com/Donders-Institute/dr-data-stager/pkg/utility/... -run TestRsaCryptography
