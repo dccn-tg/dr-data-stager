@@ -13,20 +13,23 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
 	"github.com/Donders-Institute/dr-data-stager/pkg/errors"
 	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
+	"github.com/Donders-Institute/dr-data-stager/pkg/utility"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
 var (
 	//optsConfig  *string
-	optsVerbose bool   = false
-	nworkers    int    = 4
-	taskID      string = "0000-0000-0000-0000"
-	logFile     string = "/opt/stager/log/s-isync.log"
-	configFile  string = os.Getenv("STAGER_WORKER_CONFIG")
-	drUser      string = "stager@ru.nl"
-	drPass      string
-	srcPath     string
-	dstPath     string
+	optsVerbose       bool   = false
+	nworkers          int    = 4
+	taskID            string = "0000-0000-0000-0000"
+	logFile           string = "/opt/stager/log/s-isync.log"
+	configFile        string = os.Getenv("STAGER_WORKER_CONFIG")
+	drUser            string = "stager@ru.nl"
+	drPass            string
+	withEncryptedPass bool   = true
+	rsaKey            string = "key.pem"
+	srcPath           string
+	dstPath           string
 )
 
 func init() {
@@ -37,6 +40,8 @@ func init() {
 	flag.StringVar(&taskID, "task", taskID, "stager task `id`")
 	flag.StringVar(&drUser, "druser", drUser, "(R)DR data-access `username`")
 	flag.StringVar(&drPass, "drpass", drPass, "(R)DR data-access `password`")
+	flag.BoolVar(&withEncryptedPass, "e", withEncryptedPass, "use encrypted (R)DR data-access password")
+	flag.StringVar(&rsaKey, "k", rsaKey, "RSA key `path` for decrypting (R)DR data-access password")
 
 	flag.Usage = usage
 
@@ -82,6 +87,16 @@ func usage() {
 func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	if withEncryptedPass {
+		encrypted, err := utility.DecryptStringWithRsaKey(drPass, rsaKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fail to decrypt credential: %s", err)
+			os.Exit(128)
+		}
+		drPass = *encrypted
+	}
+
 	ctx = context.WithValue(ctx, dr.KeyCredential, dr.NewCredential(drUser, drPass))
 
 	c := make(chan os.Signal, 2)
