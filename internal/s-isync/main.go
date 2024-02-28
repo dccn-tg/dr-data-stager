@@ -26,7 +26,7 @@ var (
 	configFile        string = os.Getenv("STAGER_WORKER_CONFIG")
 	drUser            string = "stager@ru.nl"
 	drPass            string
-	withEncryptedPass bool   = true
+	withEncryptedPass bool   = false
 	rsaKey            string = "key.pem"
 	srcPath           string
 	dstPath           string
