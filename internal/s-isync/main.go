@@ -97,8 +97,6 @@ func main() {
 		drPass = *encrypted
 	}
 
-	ctx = context.WithValue(ctx, dr.KeyCredential, dr.NewCredential(drUser, drPass))
-
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -129,6 +127,12 @@ func run(ctx context.Context, cfg config.Configuration) *errors.IsyncError {
 	}
 
 	log.Infof("[%s] [%s,%s] %s --> %s\n", taskID, user.Username, drUser, srcPath, dstPath)
+
+	// use DR data-access credential given as arguments
+	if drUser != cfg.Dr.IrodsUser {
+		cfg.Dr.IrodsUser = drUser
+		cfg.Dr.IrodsPass = drPass
+	}
 
 	// initialize irods filesystem
 	ifs, err := dr.NewFileSystem("s-isync", cfg.Dr)
