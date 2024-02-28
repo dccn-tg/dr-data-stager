@@ -68,7 +68,7 @@ func init() {
 	// check if both source and destination paths are provided
 	args := flag.Args()
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "Error: insufficient arguments for source and destination")
+		fmt.Fprintf(os.Stderr, "Error: insufficient arguments for source and destination.\n")
 		os.Exit(128) // invalid argument
 	}
 
@@ -91,7 +91,7 @@ func main() {
 	if withEncryptedPass {
 		encrypted, err := utility.DecryptStringWithRsaKey(drPass, rsaKey)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: fail to decrypt credential: %s", err)
+			fmt.Fprintf(os.Stderr, "Error: fail to decrypt credential: %s\n", err)
 			os.Exit(128)
 		}
 		drPass = *encrypted
@@ -109,7 +109,7 @@ func main() {
 	// load global configuration
 	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: fail to load configuration: %s", configFile)
+		fmt.Fprintf(os.Stderr, "Error: fail to load configuration: %s\n", configFile)
 		os.Exit(128) // invalid argument
 	}
 
