@@ -3,6 +3,7 @@ package path
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,12 +11,12 @@ import (
 	"unsafe"
 
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
-	"github.com/cyverse/go-irodsclient/fs"
+	ifs "github.com/cyverse/go-irodsclient/fs"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	blockSize = 4096
+	blockSize = 32768
 	separator = string(filepath.Separator)
 )
 
@@ -87,8 +88,10 @@ func (s FileSystemScanner) ScanMakeDir(ctx context.Context, buffer int, dirmaker
 
 	go func() {
 		defer close(files)
+
 		if s.base.Mode.IsDir() {
-			s.fastWalk(ctx, s.base.Path, false, &files)
+			s.goWalk(ctx, s.base.Path, false, &files)
+			//s.fastWalk(ctx, s.base.Path, false, &files)
 		} else {
 			files <- s.base.Path
 		}
@@ -111,6 +114,33 @@ func (s FileSystemScanner) CountFilesInDir(ctx context.Context, dir string) int 
 	return c
 }
 
+func (s FileSystemScanner) goWalk(ctx context.Context, root string, followLink bool, files *chan string) {
+
+	filepath.WalkDir(root, func(p string, d fs.DirEntry, e error) error {
+
+		if e != nil {
+			log.Warnf("skip file: %s due to %s\n", p, e)
+		}
+
+		switch {
+		case d.Type().IsDir():
+			if s.dirmaker != nil {
+				if err := (*s.dirmaker).Mkdir(ctx, strings.TrimPrefix(p, s.base.Path)); err != nil {
+					log.Errorf("Mkdir failure: %s\n", err.Error())
+				}
+			}
+		case d.Type().IsRegular():
+			*files <- s.base.Path
+		case d.Type() == fs.ModeSymlink:
+			log.Warnf("skip symlink: %s\n", p)
+		default:
+			log.Warnf("skip unsupported file type: %s\n", p)
+		}
+
+		return nil
+	})
+}
+
 // fastWalk uses linux specific way (i.e. syscall.SYS_GETDENT64) to walk through
 // files and directories under the given root recursively.  Files are pushed to
 // a given channel of type string. The caller is responsible for
@@ -127,7 +157,7 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 	// Opendir.
 	// See dir_unix.go/readdirnames.
 	buf := make([]byte, blockSize)
-	nbuf := len(buf)
+	nbuf := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -166,7 +196,7 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 
 				switch dirent.Type {
 				case syscall.DT_UNKNOWN:
-					log.Warnf("unknonw file type: %s", vpath)
+					log.Warnf("unknown file type: %s", vpath)
 				case syscall.DT_REG:
 					*files <- vpath
 				case syscall.DT_DIR:
@@ -264,7 +294,7 @@ func (s IrodsCollectionScanner) CountFilesInDir(ctx context.Context, dir string)
 // The caller is responsible for closing the `files` channel.
 func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files *chan string) {
 
-	entries, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).List(path)
+	entries, err := ctx.Value(dr.KeyFilesystem).(*ifs.FileSystem).List(path)
 	if err != nil {
 		log.Error(err)
 		return
@@ -275,7 +305,7 @@ func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files
 	}
 
 	// push collection entries into channel
-	chanEntries := make(chan *fs.Entry, len(entries))
+	chanEntries := make(chan *ifs.Entry, len(entries))
 	go func() {
 		defer close(chanEntries)
 		for _, entry := range entries {
@@ -290,7 +320,7 @@ func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files
 				// no more entries to handle
 				return
 			}
-			if entry.Type == fs.FileEntry {
+			if entry.Type == ifs.FileEntry {
 				*files <- entry.Path
 			} else {
 				if s.dirmaker != nil {
