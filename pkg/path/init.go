@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
+	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
+	"github.com/cyverse/go-irodsclient/fs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,8 +22,6 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 
 	re := regexp.MustCompile(`^(i|irods):`)
 
-	var err error
-
 	if re.MatchString(path) {
 
 		ipath := strings.TrimSuffix(re.ReplaceAllString(path, ""), "/")
@@ -30,34 +29,34 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 		info.Path = ipath
 		info.Type = TypeIrods
 
-		// check if the namespace refers to a file object.
-		if _, err = exec.CommandContext(ctx, "imeta", "ls", "-d", ipath).Output(); err == nil {
+		entry, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).Stat(ipath)
+		if err != nil {
+			return info, err
+		}
+
+		if entry.Type == fs.FileEntry {
 			info.Mode = 0
 			return info, nil
 		}
 
-		// check if the namespace refers to a collection object.
-		if _, err = exec.CommandContext(ctx, "imeta", "ls", "-C", ipath).Output(); err == nil {
+		if entry.Type == fs.DirectoryEntry {
 			info.Mode = os.ModeDir
 			return info, nil
 		}
 
-		err = fmt.Errorf("data or collection not found: %s", info.Path)
-
-	} else {
-
-		info.Path = path
-		info.Type = TypeFileSystem
-
-		if fi, err := os.Stat(path); err == nil {
-			info.Mode = fi.Mode()
-			return info, nil
-		}
-
-		err = fmt.Errorf("file or directory not found: %s", info.Path)
 	}
 
-	return info, err
+	info.Path = path
+	info.Type = TypeFileSystem
+
+	fi, err := os.Stat(path)
+
+	if err != nil {
+		return info, err
+	}
+
+	info.Mode = fi.Mode()
+	return info, nil
 }
 
 // ScanAndSync walks through the files retrieved from the `bufio.Scanner`,
@@ -105,17 +104,6 @@ func syncWorker(
 	files chan string,
 	processed chan SyncError) {
 
-	fsrcPrefix := ""
-	fdstPrefix := ""
-
-	if src.Type == TypeIrods {
-		fsrcPrefix = "i:"
-	}
-
-	if dst.Type == TypeIrods {
-		fdstPrefix = "i:"
-	}
-
 	for {
 		select {
 		case fsrc, more := <-files:
@@ -128,97 +116,30 @@ func syncWorker(
 
 			// determin destination file path.
 			fdst := path.Join(dst.Path, strings.TrimPrefix(fsrc, src.Path))
-
-			// run irsync
-			cmdExec := "irsync"
-			cmdArgs := []string{"-K", "-v", fmt.Sprintf("%s%s", fsrcPrefix, fsrc), fmt.Sprintf("%s%s", fdstPrefix, fdst)}
-
-			log.Debugf("exec: %s %s", cmdExec, strings.Join(cmdArgs, " "))
-
-			_, err := exec.CommandContext(ctx, cmdExec, cmdArgs...).Output()
-			processed <- SyncError{
-				File:  fsrc,
-				Error: err,
+			switch {
+			case src.Type == TypeIrods && dst.Type == TypeFileSystem:
+				// get file from irods
+				log.Debugf("irods get: %s -> %s\n", fsrc, fdst)
+				processed <- SyncError{
+					File:  fsrc,
+					Error: ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 0, nil),
+				}
+			case src.Type == TypeFileSystem && dst.Type == TypeIrods:
+				// put file to irods
+				log.Debugf("irods put: %s -> %s\n", fsrc, fdst)
+				processed <- SyncError{
+					File:  fsrc,
+					Error: ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 0, false, nil),
+				}
+			default:
+				// both source/destination has the same type
+				processed <- SyncError{
+					File:  fsrc,
+					Error: fmt.Errorf("not supported"),
+				}
 			}
 		case <-ctx.Done():
 			log.Debugf("sync worker aborted")
-			// task has been mark to done.
-			wg.Done()
-			return
-		}
-	}
-}
-
-// ScanAndRepl walks through the files retrieved from the `bufio.Scanner`,
-// replicate each file from the `rescSrc` iRODS resrouce to the `rescDst` iORDS resource.
-//
-// The sync operation is performed in a concurrent way.  The degree of concurrency is
-// defined by number of sync workers, `nworkers`.
-//
-// Files being successfully synced will be returned as a map with key as the filename
-// and value as the checksum of the file.
-func ScanAndRepl(ctx context.Context, coll PathInfo, rescSrc, rescDst string, nworkers int) (processed chan ReplError) {
-
-	processed = make(chan ReplError)
-
-	// initiate a source scanner and performs the scan.
-	scanner := NewScanner(coll)
-
-	files := scanner.ScanMakeDir(ctx, 4096, nil)
-
-	// create worker group
-	var wg sync.WaitGroup
-	wg.Add(nworkers)
-
-	// spin off workers
-	for i := 1; i <= nworkers; i++ {
-		go replWorker(ctx, i, &wg, rescSrc, rescDst, files, processed)
-	}
-
-	go func() {
-		// wait for all workers to finish.
-		wg.Wait()
-		// close success and failure channels.
-		close(processed)
-	}()
-
-	return
-}
-
-func replWorker(
-	ctx context.Context,
-	id int,
-	wg *sync.WaitGroup,
-	rescSrc, rescDst string,
-	files chan string,
-	processed chan ReplError) {
-
-	for {
-		select {
-		case f, ok := <-files:
-			// files channel is closed.
-			if !ok {
-				wg.Done()
-				return
-			}
-
-			// run irepl
-			//cmdExec := "irepl"
-			//cmdArgs := []string{"-v", "-S", rescSrc, "-R", rescDst, f}
-			// run irule
-			cmdExec := "irule"
-			cmdArgs := []string{"rdmReplicateData(*obj, list('" + rescDst + "'))", "*obj=" + f, "null"}
-
-			log.Debugf("exec: %s %s", cmdExec, strings.Join(cmdArgs, " "))
-
-			_, err := exec.CommandContext(ctx, cmdExec, cmdArgs...).Output()
-
-			processed <- ReplError{
-				File:  f,
-				Error: err,
-			}
-		case <-ctx.Done():
-			log.Debugf("repl worker aborted")
 			// task has been mark to done.
 			wg.Done()
 			return

@@ -9,6 +9,7 @@ import (
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
+	"github.com/cyverse/go-irodsclient/fs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,8 +19,7 @@ func NewDirMaker(path PathInfo, config config.Configuration) DirMaker {
 	switch path.Type {
 	case TypeIrods:
 		return IrodsCollectionMaker{
-			base:   path.Path,
-			config: config.Dr,
+			base: path.Path,
 		}
 	default:
 		return FileSystemDirMaker{
@@ -54,15 +54,11 @@ func (m FileSystemDirMaker) Mkdir(ctx context.Context, path string) error {
 // IrodsCollectionMaker implements the DirMaker for iRODS, using the `imkdir` system call.
 type IrodsCollectionMaker struct {
 	// Base is the top-level collection.
-	base   string
-	config dr.Config
+	base string
 }
 
 // Mkdir ensures the iRODS collection referred by the path is created.
 func (m IrodsCollectionMaker) Mkdir(ctx context.Context, coll string) error {
-
-	// trim the possible leading `i:` used in the syntax of "irsync" for referring to iRODS namespace.
-	coll = strings.TrimPrefix(coll, "i:")
 
 	if !strings.HasPrefix(coll, m.base) {
 		coll = filepath.Join(m.base, coll)
@@ -70,22 +66,7 @@ func (m IrodsCollectionMaker) Mkdir(ctx context.Context, coll string) error {
 
 	log.Debugf("creating collection %s", coll)
 
-	// try to initialize the filesystem if it is not available
-	cfg := m.config
-
-	// credential in current context is not the same as the service-account credential
-	// defined in the config.
-	if u := ctx.Value(dr.KeyCredential).(dr.Credential).Username(); u != cfg.IrodsUser {
-		cfg.IrodsUser = u
-		cfg.IrodsPass = ctx.Value(dr.KeyCredential).(dr.Credential).Password()
-	}
-
-	fsys, err := dr.NewFileSystem("collMaker", cfg)
-	if err != nil {
-		return err
-	}
-
-	if err := fsys.MakeDir(coll, true); err != nil {
+	if err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).MakeDir(coll, true); err != nil {
 		return fmt.Errorf("cannot create %s: %s", coll, err)
 	}
 

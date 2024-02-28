@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
 	"github.com/cyverse/go-irodsclient/fs"
 	log "github.com/sirupsen/logrus"
 )
@@ -217,9 +218,8 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 
 // IrodsCollectionScanner implements the `Scanner` interface for iRODS.
 type IrodsCollectionScanner struct {
-	FileSystem *fs.FileSystem
-	base       PathInfo
-	dirmaker   *DirMaker
+	base     PathInfo
+	dirmaker *DirMaker
 }
 
 // ScanMakeDir gets a list of data objects iteratively under a iRODS collection `path`, and performs
@@ -258,26 +258,13 @@ func (s IrodsCollectionScanner) CountFilesInDir(ctx context.Context, dir string)
 	return c
 }
 
-// escapeSpecialCharsGenQuery addes "\" in front of the known special characters
-// that cannot be passed to GenQuery directly.
-func (s IrodsCollectionScanner) escapeSpecialCharsGenQuery(p string) string {
-
-	// note that the special characters need to be handcrafted one by one.
-	// so far, the one noticed not being accepted by iRODS GenQuery is "`".
-	for _, c := range []string{"`"} {
-		p = strings.ReplaceAll(p, c, fmt.Sprintf("\\%s", c))
-	}
-
-	return p
-}
-
 // collWalk uses the "iquest" command to query file objects and sub-collections within the collection referred
 // by `path`.  It pushs file objects to the `files` channel and loop over the sub-collections iteratively.
 //
 // The caller is responsible for closing the `files` channel.
 func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files *chan string) {
 
-	entries, err := s.FileSystem.List(path)
+	entries, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).List(path)
 	if err != nil {
 		log.Error(err)
 		return

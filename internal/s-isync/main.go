@@ -68,7 +68,7 @@ func init() {
 	// check if both source and destination paths are provided
 	args := flag.Args()
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "insufficient arguments for source and destination")
+		fmt.Fprintf(os.Stderr, "Error: insufficient arguments for source and destination")
 		os.Exit(128) // invalid argument
 	}
 
@@ -91,7 +91,7 @@ func main() {
 	if withEncryptedPass {
 		encrypted, err := utility.DecryptStringWithRsaKey(drPass, rsaKey)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "fail to decrypt credential: %s", err)
+			fmt.Fprintf(os.Stderr, "Error: fail to decrypt credential: %s", err)
 			os.Exit(128)
 		}
 		drPass = *encrypted
@@ -109,7 +109,7 @@ func main() {
 	// load global configuration
 	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "fail to load configuration: %s", configFile)
+		fmt.Fprintf(os.Stderr, "Error: fail to load configuration: %s", configFile)
 		os.Exit(128) // invalid argument
 	}
 
@@ -130,23 +130,32 @@ func run(ctx context.Context, cfg config.Configuration) *errors.IsyncError {
 
 	log.Infof("[%s] [%s,%s] %s --> %s\n", taskID, user.Username, drUser, srcPath, dstPath)
 
+	// initialize irods filesystem
+	ifs, err := dr.NewFileSystem("s-isync", cfg.Dr)
+	if err != nil {
+		return errors.ToIsyncError(1, err.Error())
+	}
+	defer ifs.Release()
+
+	ctxfs := context.WithValue(ctx, dr.KeyFilesystem, ifs)
+
 	// logic of performing data transfer.
-	srcPathInfo, err := ppath.GetPathInfo(ctx, srcPath)
+	srcPathInfo, err := ppath.GetPathInfo(ctxfs, srcPath)
 	if err != nil {
 		return errors.ToIsyncError(128, err.Error())
 	}
 
-	total := srcPathInfo.CountFiles(ctx)
+	total := srcPathInfo.CountFiles(ctxfs)
 	nsuccess := 0
 	nfailure := 0
 
 	fmt.Printf("%d,%d,%d\n", total, nsuccess, nfailure)
 
-	dstPathInfo, _ := ppath.GetPathInfo(ctx, dstPath)
+	dstPathInfo, _ := ppath.GetPathInfo(ctxfs, dstPath)
 	log.Debugf("[%s] srcPathInfo: %+v", taskID, srcPathInfo)
 	log.Debugf("[%s] dstPathInfo: %+v", taskID, dstPathInfo)
 
-	processed := ppath.ScanAndSync(ctx, cfg, srcPathInfo, dstPathInfo, nworkers)
+	processed := ppath.ScanAndSync(ctxfs, cfg, srcPathInfo, dstPathInfo, nworkers)
 
 	for {
 		select {

@@ -1,6 +1,7 @@
 package dr
 
 const KeyCredential = int8(0)
+const KeyFilesystem = int8(1)
 
 func NewCredential(username, password string) Credential {
 	return Credential{
