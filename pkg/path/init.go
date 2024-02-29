@@ -13,7 +13,7 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
 	"github.com/cyverse/go-irodsclient/fs"
-	log "github.com/sirupsen/logrus"
+	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
 // GetPathInfo resolves the PathInfo of the given path.

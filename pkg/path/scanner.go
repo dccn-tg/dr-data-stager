@@ -2,7 +2,6 @@ package path
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,7 +11,7 @@ import (
 
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
 	ifs "github.com/cyverse/go-irodsclient/fs"
-	log "github.com/sirupsen/logrus"
+	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
 const (
@@ -150,7 +149,7 @@ func (s FileSystemScanner) fastWalk(ctx context.Context, root string, followLink
 
 	dir, err := os.Open(root)
 	if err != nil {
-		log.Error(fmt.Sprintf("%s", err))
+		log.Errorf("%s\n", err)
 		return
 	}
 	defer dir.Close()
@@ -297,7 +296,7 @@ func (s IrodsCollectionScanner) collWalk(ctx context.Context, path string, files
 
 	entries, err := ctx.Value(dr.KeyFilesystem).(*ifs.FileSystem).List(path)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("%s\n", err)
 		return
 	}
 
