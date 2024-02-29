@@ -136,7 +136,7 @@ func run(ctx context.Context, cfg config.Configuration) *errors.IsyncError {
 	}
 
 	// initialize irods filesystem
-	ifs, err := dr.NewFileSystem("s-isync", cfg.Dr)
+	ifs, err := dr.NewFileSystem("stager", cfg.Dr)
 	if err != nil {
 		return errors.ToIsyncError(1, err.Error())
 	}
