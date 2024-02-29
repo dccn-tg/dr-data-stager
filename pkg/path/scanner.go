@@ -105,7 +105,8 @@ func (s FileSystemScanner) CountFilesInDir(ctx context.Context, dir string) int 
 	c := 0
 	files := make(chan string, 10000)
 	go func() {
-		s.fastWalk(ctx, dir, false, &files)
+		s.goWalk(ctx, s.base.Path, false, &files)
+		//s.fastWalk(ctx, dir, false, &files)
 		defer close(files)
 	}()
 	for range files {
@@ -130,7 +131,7 @@ func (s FileSystemScanner) goWalk(ctx context.Context, root string, followLink b
 				}
 			}
 		case d.Type().IsRegular():
-			*files <- s.base.Path
+			*files <- p
 		case d.Type() == fs.ModeSymlink:
 			log.Warnf("skip symlink: %s\n", p)
 		default:
