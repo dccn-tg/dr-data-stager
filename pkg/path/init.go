@@ -180,10 +180,15 @@ func syncWorker(
 				// trigger checksum calculation
 				if err == nil {
 					if conn, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).GetMetadataConnection(); err == nil {
+
+						defer ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).ReturnMetadataConnection(conn)
+
 						if chksum, err := ifs.GetDataObjectChecksum(conn, fdst, ""); err != nil {
 							log.Errorf("cannot request checksum: %s\n", err)
 						} else {
-							log.Debugf("%s (%s)\n", fdst, chksum)
+							log.Debugf("%s (%s)\n", fdst, chksum.GetChecksumString())
+
+							// TODO: compare checksum to confirm the file is correctly uploaded
 						}
 					}
 				}
