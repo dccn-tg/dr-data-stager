@@ -13,6 +13,8 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
 	"github.com/cyverse/go-irodsclient/fs"
+	ifs "github.com/cyverse/go-irodsclient/irods/fs"
+
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
@@ -172,10 +174,25 @@ func syncWorker(
 
 				// put file to irods
 				log.Debugf("irods put: %s -> %s\n", fsrc, fdst)
+
+				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 0, false, nil)
+
+				// trigger checksum calculation
+				if err == nil {
+					if conn, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).GetMetadataConnection(); err == nil {
+						if chksum, err := ifs.GetDataObjectChecksum(conn, fdst, ""); err != nil {
+							log.Errorf("cannot request checksum: %s\n", err)
+						} else {
+							log.Debugf("%s (%s)\n", fdst, chksum)
+						}
+					}
+				}
+
 				processed <- SyncError{
 					File:  fsrc,
-					Error: ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 0, false, nil),
+					Error: err,
 				}
+
 			default:
 				// both source/destination has the same type
 				processed <- SyncError{
