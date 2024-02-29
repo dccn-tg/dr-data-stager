@@ -126,13 +126,13 @@ func syncWorker(
 
 			// construct the destination path of this particular source `fsrc`
 			var fdst string
-			if dst.Mode.IsDir() {
+			if src.Mode.IsRegular() && !dst.Mode.IsDir() {
+				// destination isn't a directory, then it should be used as the destination file path.
+				fdst = dst.Path
+			} else {
 				// `dst` is an existing directory/collection, construct the
 				// destination file path of this particular file.
 				fdst = path.Join(dst.Path, strings.TrimPrefix(fsrc, srcbase))
-			} else {
-				// destination isn't a directory, then it should be used as the destination file path.
-				fdst = dst.Path
 			}
 
 			switch {
