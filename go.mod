@@ -24,6 +24,7 @@ require (
 require (
 	github.com/rs/xid v1.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
@@ -31,7 +32,7 @@ require (
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cyverse/go-irodsclient v0.12.8
+	github.com/cyverse/go-irodsclient v0.13.2
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
