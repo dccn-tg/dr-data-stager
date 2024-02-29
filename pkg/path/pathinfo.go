@@ -13,6 +13,10 @@ type PathInfo struct {
 	Type PathType
 	// Mode is the `os.FileMode` of the path.
 	Mode os.FileMode
+	// Size
+	Size int64
+	// Checksum
+	Checksum string
 }
 
 func (p PathInfo) CountFiles(ctx context.Context) int {
@@ -21,4 +25,17 @@ func (p PathInfo) CountFiles(ctx context.Context) int {
 	}
 	scanner := NewScanner(p)
 	return scanner.CountFilesInDir(ctx, p.Path)
+}
+
+func (p PathInfo) SameAs(ctx context.Context, o PathInfo) bool {
+
+	if p.Size != o.Size {
+		return false
+	}
+
+	if o.Checksum == "" || p.Checksum == "" {
+		return false
+	}
+
+	return o.Checksum == p.Checksum
 }

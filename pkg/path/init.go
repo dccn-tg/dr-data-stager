@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -36,6 +37,8 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 
 		if entry.Type == fs.FileEntry {
 			info.Mode = 0
+			info.Checksum = entry.CheckSum
+			info.Size = entry.Size
 			return info, nil
 		}
 
@@ -56,6 +59,8 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 	}
 
 	info.Mode = fi.Mode()
+	info.Size = fi.Size()
+
 	return info, nil
 }
 
@@ -83,7 +88,7 @@ func ScanAndSync(ctx context.Context, config config.Configuration, src, dst Path
 
 	// spin off workers
 	for i := 1; i <= nworkers; i++ {
-		go syncWorker(ctx, i, &wg, src, dst, files, processed)
+		go syncWorker(ctx, &wg, src, dst, files, processed)
 	}
 
 	go func() {
@@ -98,11 +103,16 @@ func ScanAndSync(ctx context.Context, config config.Configuration, src, dst Path
 
 func syncWorker(
 	ctx context.Context,
-	id int,
 	wg *sync.WaitGroup,
 	src, dst PathInfo,
 	files chan string,
 	processed chan SyncError) {
+
+	// determin the basedir of the source
+	srcbase := src.Path
+	if src.Mode.IsRegular() {
+		srcbase = filepath.Dir(src.Path)
+	}
 
 	for {
 		select {
@@ -114,10 +124,32 @@ func syncWorker(
 				return
 			}
 
-			// determin destination file path.
-			fdst := path.Join(dst.Path, strings.TrimPrefix(fsrc, src.Path))
+			// construct the destination path of this particular source `fsrc`
+			var fdst string
+			if dst.Mode.IsDir() {
+				// `dst` is an existing directory/collection, construct the
+				// destination file path of this particular file.
+				fdst = path.Join(dst.Path, strings.TrimPrefix(fsrc, srcbase))
+			} else {
+				// destination isn't a directory, then it should be used as the destination file path.
+				fdst = dst.Path
+			}
+
 			switch {
 			case src.Type == TypeIrods && dst.Type == TypeFileSystem:
+
+				psrc, _ := GetPathInfo(ctx, fmt.Sprintf("i:%s", fsrc))
+				pdst, _ := GetPathInfo(ctx, fdst)
+
+				if pdst.SameAs(ctx, psrc) {
+					log.Debugf("skip transfer: %s == %s\n", fsrc, fdst)
+					processed <- SyncError{
+						File:  fsrc,
+						Error: nil,
+					}
+					continue
+				}
+
 				// get file from irods
 				log.Debugf("irods get: %s -> %s\n", fsrc, fdst)
 				processed <- SyncError{
@@ -125,6 +157,19 @@ func syncWorker(
 					Error: ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 0, nil),
 				}
 			case src.Type == TypeFileSystem && dst.Type == TypeIrods:
+
+				pdst, _ := GetPathInfo(ctx, fmt.Sprintf("i:%s", fdst))
+				psrc, _ := GetPathInfo(ctx, fsrc)
+
+				if pdst.SameAs(ctx, psrc) {
+					log.Debugf("skip transfer: %s == %s\n", fsrc, fdst)
+					processed <- SyncError{
+						File:  fsrc,
+						Error: nil,
+					}
+					continue
+				}
+
 				// put file to irods
 				log.Debugf("irods put: %s -> %s\n", fsrc, fdst)
 				processed <- SyncError{

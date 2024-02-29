@@ -14,6 +14,7 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/pkg/errors"
 	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
 	"github.com/Donders-Institute/dr-data-stager/pkg/utility"
+	"github.com/cyverse/go-irodsclient/irods/types"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
@@ -155,7 +156,12 @@ func run(ctx context.Context, cfg config.Configuration) *errors.IsyncError {
 
 	fmt.Printf("%d,%d,%d\n", total, nsuccess, nfailure)
 
-	dstPathInfo, _ := ppath.GetPathInfo(ctxfs, dstPath)
+	dstPathInfo, err := ppath.GetPathInfo(ctxfs, dstPath)
+	if err != nil && !types.IsFileNotFoundError(err) && !os.IsNotExist(err) {
+		// error is not nil, and it is not a "file not found"-type error
+		return errors.ToIsyncError(128, err.Error())
+	}
+
 	log.Debugf("[%s] srcPathInfo: %+v", taskID, srcPathInfo)
 	log.Debugf("[%s] dstPathInfo: %+v", taskID, dstPathInfo)
 
