@@ -70,5 +70,8 @@ func (m IrodsCollectionMaker) Mkdir(ctx context.Context, coll string) error {
 		return fmt.Errorf("cannot create %s: %s", coll, err)
 	}
 
+	// cache entries of the collection
+	ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).List(coll)
+
 	return nil
 }

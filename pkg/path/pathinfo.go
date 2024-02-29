@@ -29,13 +29,15 @@ func (p PathInfo) CountFiles(ctx context.Context) int {
 
 func (p PathInfo) SameAs(ctx context.Context, o PathInfo) bool {
 
-	if p.Size != o.Size {
-		return false
-	}
+	return p.Size == o.Size
 
-	if o.Checksum == "" || p.Checksum == "" {
-		return false
-	}
+	// if p.Size != o.Size {
+	// 	return false
+	// }
 
-	return o.Checksum == p.Checksum
+	// if o.Checksum == "" || p.Checksum == "" {
+	// 	return false
+	// }
+
+	// return o.Checksum == p.Checksum
 }
