@@ -13,6 +13,7 @@ var appRoutes = require('./routes/index');
 var apiRoutesFS = require('./routes/mod_fs');
 var apiRoutesRdm = require('./routes/mod_rdm');
 var apiRoutesStager = require('./routes/mod_stager');
+var errRoutes = require('./routes/error')
 
 var app = express();
 
@@ -60,6 +61,9 @@ app.use('/oidc', authRouter);
 app.use('/fs', apiRoutesFS)
 app.use('/rdm', apiRoutesRdm)
 app.use('/stager', apiRoutesStager)
+
+// error page router
+app.use('/error', errRoutes);
 
 // main webapp page
 app.use('/', appRoutes);

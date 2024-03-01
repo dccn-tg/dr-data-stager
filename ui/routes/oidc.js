@@ -77,7 +77,7 @@ router.get('/login', passport.authenticate('oidc'));
 // callback endpoint after authentication at OIDC provider
 router.get('/callback', passport.authenticate('oidc', {
     successReturnToOrRedirect: '/',
-    failureRedirect: '/403'
+    failureRedirect: '/error/403'
 }));
 
 // endpoint to trigger logout workflow
