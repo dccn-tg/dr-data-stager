@@ -165,7 +165,7 @@ func run(ctx context.Context, cfg config.Configuration) *errors.IsyncError {
 	log.Debugf("[%s] srcPathInfo: %+v", taskID, srcPathInfo)
 	log.Debugf("[%s] dstPathInfo: %+v", taskID, dstPathInfo)
 
-	processed := ppath.ScanAndSync(ctxfs, cfg, srcPathInfo, dstPathInfo, nworkers)
+	processed := scanAndSync(ctxfs, cfg, srcPathInfo, dstPathInfo, nworkers)
 
 	for {
 		select {

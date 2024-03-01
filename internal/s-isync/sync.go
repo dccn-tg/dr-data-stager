@@ -1,12 +1,10 @@
-package path
+package main
 
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -15,58 +13,17 @@ import (
 	"github.com/cyverse/go-irodsclient/fs"
 	ifs "github.com/cyverse/go-irodsclient/irods/fs"
 
+	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
-// GetPathInfo resolves the PathInfo of the given path.
-func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
-
-	var info PathInfo
-
-	re := regexp.MustCompile(`^(i|irods):`)
-
-	if re.MatchString(path) {
-
-		ipath := strings.TrimSuffix(re.ReplaceAllString(path, ""), "/")
-
-		info.Path = ipath
-		info.Type = TypeIrods
-
-		entry, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).Stat(ipath)
-		if err != nil {
-			return info, err
-		}
-
-		if entry.Type == fs.FileEntry {
-			info.Mode = 0
-			info.Checksum = entry.CheckSum
-			info.Size = entry.Size
-			return info, nil
-		}
-
-		if entry.Type == fs.DirectoryEntry {
-			info.Mode = os.ModeDir
-			return info, nil
-		}
-
-	}
-
-	info.Path = path
-	info.Type = TypeFileSystem
-
-	fi, err := os.Stat(path)
-
-	if err != nil {
-		return info, err
-	}
-
-	info.Mode = fi.Mode()
-	info.Size = fi.Size()
-
-	return info, nil
+// syncOutput registers the error message of a particular file sync error.
+type syncOutput struct {
+	File  string
+	Error error
 }
 
-// ScanAndSync walks through the files retrieved from the `bufio.Scanner`,
+// scanAndSync walks through the files retrieved from the `bufio.Scanner`,
 // sync each file from the `srcColl` collection to the `dstColl` collection.
 //
 // The sync operation is performed in a concurrent way.  The degree of concurrency is
@@ -74,13 +31,13 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 //
 // Files being successfully synced will be returned as a map with key as the filename
 // and value as the checksum of the file.
-func ScanAndSync(ctx context.Context, config config.Configuration, src, dst PathInfo, nworkers int) (processed chan SyncError) {
+func scanAndSync(ctx context.Context, config config.Configuration, src, dst ppath.PathInfo, nworkers int) (processed chan syncOutput) {
 
-	processed = make(chan SyncError)
+	processed = make(chan syncOutput)
 
 	// initiate a source scanner and performs the scan.
-	scanner := NewScanner(src)
-	dirmaker := NewDirMaker(dst, config)
+	scanner := ppath.NewScanner(src)
+	dirmaker := ppath.NewDirMaker(dst, config)
 
 	files := scanner.ScanMakeDir(ctx, nworkers*8, &dirmaker)
 
@@ -106,9 +63,9 @@ func ScanAndSync(ctx context.Context, config config.Configuration, src, dst Path
 func syncWorker(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	src, dst PathInfo,
+	src, dst ppath.PathInfo,
 	files chan string,
-	processed chan SyncError) {
+	processed chan syncOutput) {
 
 	// determin the basedir of the source
 	srcbase := src.Path
@@ -138,14 +95,14 @@ func syncWorker(
 			}
 
 			switch {
-			case src.Type == TypeIrods && dst.Type == TypeFileSystem:
+			case src.Type == ppath.TypeIrods && dst.Type == ppath.TypeFileSystem:
 
-				psrc, _ := GetPathInfo(ctx, fmt.Sprintf("i:%s", fsrc))
-				pdst, _ := GetPathInfo(ctx, fdst)
+				psrc, _ := ppath.GetPathInfo(ctx, fmt.Sprintf("i:%s", fsrc))
+				pdst, _ := ppath.GetPathInfo(ctx, fdst)
 
 				if pdst.SameAs(ctx, psrc) {
 					log.Debugf("skip transfer: %s == %s\n", fsrc, fdst)
-					processed <- SyncError{
+					processed <- syncOutput{
 						File:  fsrc,
 						Error: nil,
 					}
@@ -154,18 +111,18 @@ func syncWorker(
 
 				// get file from irods
 				log.Debugf("irods get: %s -> %s\n", fsrc, fdst)
-				processed <- SyncError{
+				processed <- syncOutput{
 					File:  fsrc,
 					Error: ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 0, nil),
 				}
-			case src.Type == TypeFileSystem && dst.Type == TypeIrods:
+			case src.Type == ppath.TypeFileSystem && dst.Type == ppath.TypeIrods:
 
-				pdst, _ := GetPathInfo(ctx, fmt.Sprintf("i:%s", fdst))
-				psrc, _ := GetPathInfo(ctx, fsrc)
+				pdst, _ := ppath.GetPathInfo(ctx, fmt.Sprintf("i:%s", fdst))
+				psrc, _ := ppath.GetPathInfo(ctx, fsrc)
 
 				if pdst.SameAs(ctx, psrc) {
 					log.Debugf("skip transfer: %s == %s\n", fsrc, fdst)
-					processed <- SyncError{
+					processed <- syncOutput{
 						File:  fsrc,
 						Error: nil,
 					}
@@ -193,14 +150,14 @@ func syncWorker(
 					}
 				}
 
-				processed <- SyncError{
+				processed <- syncOutput{
 					File:  fsrc,
 					Error: err,
 				}
 
 			default:
 				// both source/destination has the same type
-				processed <- SyncError{
+				processed <- syncOutput{
 					File:  fsrc,
 					Error: fmt.Errorf("not supported"),
 				}
