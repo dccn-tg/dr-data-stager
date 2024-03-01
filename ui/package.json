@@ -13,6 +13,7 @@
     "express": "~4.13.4",
     "express-json": "^1.0.0",
     "express-session": "~1.14.1",
+    "http-status-codes": "^2.3.0",
     "jade": "~1.11.0",
     "morgan": ">=1.9.1",
     "node-rest-client": "~2.0.1",
