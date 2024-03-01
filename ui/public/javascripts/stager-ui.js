@@ -231,7 +231,7 @@ function doUserLoginRemote( user, credential ) {
         //console.log(data);
     }).done( function() {
         Cookies.set('username_remote' , user);
-        showFileSystemTree(loc, init_root);
+        showFileSystemTree('remote', init_root);
     }).fail( function() {
         showAppError('Authentication failure: ' + fs_server);
     });
