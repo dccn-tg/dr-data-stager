@@ -91,7 +91,7 @@ router.get('/logout',
                 console.log("service logout error: ", err);
             }
             // redirect browser to the end_session_endpoint of the OIDC provider
-            res.redirect(process.env.STREAMER_UI_AUTH_SERVER + 
+            res.redirect(authServer + 
                 "/connect/endsession?id_token_hint=" + id_token_hint + 
                 "&post_logout_redirect_uri=" + logoutRedirectUrl(req));
         });
