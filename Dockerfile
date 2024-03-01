@@ -27,13 +27,13 @@ VOLUME ["/project", "/project_freenas", "/project_cephfs", "/home"]
 FROM base as api-server
 WORKDIR /opt/stager
 EXPOSE 8080
-COPY --from=0 /tmp/data-stager/bin/data-stager-api .
+COPY --from=0 /tmp/data-stager/build/data-stager-api .
 ENTRYPOINT ["./data-stager-api"]
 
 # stage 3: build image for the worker
 FROM base as worker
 WORKDIR /opt/stager
 RUN ( mkdir -p /opt/irods/ssl )
-COPY --from=0 /tmp/data-stager/bin/data-stager-worker .
-COPY --from=0 /tmp/data-stager/bin/s-isync .
+COPY --from=0 /tmp/data-stager/build/data-stager-worker .
+COPY --from=0 /tmp/data-stager/build/s-isync .
 ENTRYPOINT ["./data-stager-worker"]

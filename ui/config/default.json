@@ -1,0 +1,36 @@
+{
+    "port": 3080,
+    "local": {
+        "module": "stager"
+    },
+    "title": "File Staging Service",
+    "website": "https://data.donders.ru.nl",
+    "helpdesk": "datasupport@donders.ru.nl",
+    "filesystem": {
+        "displayName": "local file system",
+        "rootDir": "/tmp/",
+        "pathListDir": "/fs/dir"
+    },
+    "rdm": {
+        "displayName": "Donders Repository",
+        "rootDir": "/",
+        "prefixTurl": "irods:/rdm/di",
+        "hintLogin": "Sign in with the data-access account",
+        "pathLogin": "/rdm/login",
+        "pathLogout": "/rdm/logout",
+        "pathListDir": "/rdm/dir",
+        "pathMakeDir": "/rdm/mkdir",
+        "exampleLogin": "u123456@ru.nl",
+        "irodsWebDavEndpoint": "https://webdav.data.donders.ru.nl"
+    },
+    "stager": {
+        "displayName": "Stager Storage",
+        "rootDir": "/data/",
+        "hintLogin": "Sign in with the Stager account",
+        "pathLogin": "/stager/login",
+        "pathLogout": "/stager/logout",
+        "pathListDir": "/stager/dir",
+        "exampleLogin": "piepuk@dccn.nl",
+        "restfulEndpoint": "http://stager:3000"
+    }
+}

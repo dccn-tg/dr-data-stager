@@ -1,5 +1,7 @@
 version: "3.7"
 services:
+
+  # stager task database
   db:
     image: redis
     user: root
@@ -7,6 +9,7 @@ services:
       - ${TASK_DB_REDIS_DATA:-stager_db_data}:/data
     command: --appendonly yes
 
+  # stager api server
   api-server:
     build:
       context: .
@@ -19,13 +22,14 @@ services:
       - ${API_CONFIG:-./config/api-server.yml}:/etc/stager/api-server.yml:ro
     depends_on:
       - db
-    command: -v -p 8080 -r redis://db:6379 -c /etc/stager/api-server.yml
+    command: -p 8080 -r redis://db:6379 -c /etc/stager/api-server.yml
     logging:
       driver: "json-file"
       options:
         max-size: "20m"
         max-file: "5"
 
+  # stager worker
   worker:
     build:
       context: .
@@ -37,18 +41,41 @@ services:
       - ${WORKER_CONFIG:-./config/worker.yml}:/etc/stager/worker.yml:ro
     depends_on:
       - api-server
-    command: -v -r redis://db:6379 -c /etc/stager/worker.yml
+    command: -r redis://db:6379 -c /etc/stager/worker.yml
     logging:
       driver: "json-file"
       options:
         max-size: "20m"
         max-file: "5"
 
-  webui:
-    image: hibiken/asynqmon:${ASYNQMON_IMAGE_TAG:-latest}
-    command: --port 8081 --redis-url redis://db:6379
+  # web ui for end user
+  ui:
+    build:
+      context: ./ui
+    image: ${DOCKER_REGISTRY:-dccn}/data-stager-ui:${DOCKER_IMAGE_TAG:-latest}
+    user: root
+    environment:
+      - STAGER_UI_AUTH_SERVER=${AUTH_SERVER:-https://authserver}
+      - STAGER_UI_AUTH_CLIENT_ID=${AUTH_CLIENT_ID:-clientid}
+      - STAGER_UI_AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-clientsecret}
+    volumes:
+      - ${UI_CONFIG:-./ui/config/default.json}:/opt/stager-ui/config/default.json
     ports:
-      - ${ASYNQMON_EXTERNAL_PORT:-8081}:8081
+      - ${UI_EXTERNAL_PORT:-3080}:3080
+    depends_on:
+      - api-server
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"      
+
+  # web ui for task administration
+  admin:
+    image: hibiken/asynqmon:${ASYNQMON_IMAGE_TAG:-latest}
+    command: --port 3081 --redis-url redis://db:6379
+    ports:
+      - ${ASYNQMON_EXTERNAL_PORT:-3081}:3081
     depends_on:
       - db
       - api-server
