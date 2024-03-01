@@ -9,15 +9,15 @@ var Issuer = require('openid-client').Issuer;
 var passport = require('passport');
 var OidcStrategy = require('passport-openidconnect').Strategy;
 
-var authServer = process.env.STAGER_UI_AUTH_SERVER;
+var authServer = process.env.AUTH_SERVER;
 
 passport.use('oidc', new OidcStrategy({
     issuer: authServer,
     authorizationURL: authServer + '/connect/authorize',
     tokenURL: authServer + '/connect/token',
     userInfoURL: authServer + '/connect/userinfo',
-    clientID: process.env.STAGER_UI_AUTH_CLIENT_ID,
-    clientSecret: process.env.STAGER_UI_AUTH_CLIENT_SECRET,
+    clientID: process.env.AUTH_CLIENT_ID,
+    clientSecret: process.env.AUTH_CLIENT_SECRET,
     callbackURL: '/oidc/callback',
     skipUserProfile: true,  // we are going to get user profile ourselves.
     proxy: true,
@@ -31,7 +31,7 @@ passport.use('oidc', new OidcStrategy({
     // getting user profile, and check if the profile contains 'urn:dccn:uid' attribute.
     Issuer.discover(authServer).then((issuer) => {
         new issuer.Client({
-            client_id: process.env.STAGER_UI_AUTH_CLIENT_ID,
+            client_id: process.env.AUTH_CLIENT_ID,
         }).userinfo(accessToken).then(profile => {
             // only user with DCCN account is authorized??
             if ( ! profile['urn:dccn:uid'] ) throw new Error("missing DCCN account: " + _profile.id);

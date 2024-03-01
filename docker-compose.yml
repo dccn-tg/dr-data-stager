@@ -55,9 +55,9 @@ services:
     image: ${DOCKER_REGISTRY:-dccn}/data-stager-ui:${DOCKER_IMAGE_TAG:-latest}
     user: root
     environment:
-      - STAGER_UI_AUTH_SERVER=${AUTH_SERVER:-https://authserver}
-      - STAGER_UI_AUTH_CLIENT_ID=${AUTH_CLIENT_ID:-clientid}
-      - STAGER_UI_AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-clientsecret}
+      - AUTH_SERVER=${AUTH_SERVER:-https://authserver}
+      - AUTH_CLIENT_ID=${AUTH_CLIENT_ID:-clientid}
+      - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-clientsecret}
     volumes:
       - ${UI_CONFIG:-./ui/config/default.json}:/opt/stager-ui/config/default.json
     ports:
