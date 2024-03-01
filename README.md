@@ -1,6 +1,8 @@
-# dr-data-stager
+# Data Stager
 
-A rewrite of the Donders Repository [data-stager](https://github.com/Donders-Institute/data-stager) in Golang.
+An efficient data transfer service for transferring data between the work-in-progress storage at DCCN and the Radboud Data Repository.
+
+__Note:__ it is a rewrite of the [DCCN data-stager](https://github.com/Donders-Institute/data-stager) in Golang.
 
 ## Architecture
 
