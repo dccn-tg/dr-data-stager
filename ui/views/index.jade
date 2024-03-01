@@ -105,15 +105,18 @@ html(lang="en")
                 a(href="mailto:#{helpdesk}")
                     i.fa.fa-envelope
                     span &nbsp;Help
-            li
-                a(href="#")
-                    i.fa.fa-code-fork
-                    span &nbsp;#{version}
+            li.dropdown
+              a.dropdown-toggle(href="#", id="profile", role="button",data-toggle="dropdown",aria-haspopup="true",aria-expanded="false")
+                span #{stagerUserDisplayName}&nbsp;
+                span.caret
+              ul.dropdown-menu
+                li
+                  a(href="/oidc/logout")
+                    i.fa.fa-sign-out
+                    span &nbsp;Logout
     <!-- tabs -->
     div.tab-content
-      div.tab-pane.fade.in.active#panel_intro
-        include panel_intro.jade
-      div.tab-pane.fade#panel_transfer_request
+      div.tab-pane.fade.in.active#panel_transfer_request
         include panel_transfer_request.jade
       div.tab-pane.fade#panel_transfer_history
         include panel_transfer_history.jade

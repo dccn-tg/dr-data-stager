@@ -80,6 +80,8 @@ router.get('/', auth.isAuthenticated, function(req, res, next) {
                         title_history: 'Request history',
                         website: config.get('website'),
                         helpdesk: config.get('helpdesk'),
+                        stagerUsername: req.user.username,
+                        stagerUserDisplayName: req.user.displayName,
                         version: require(__dirname + '/../package').version,
                         fs_root_local: params_local.root,
                         fs_view_local: params_local.view,

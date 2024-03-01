@@ -41,16 +41,15 @@ function showAppInfo(html_text) {
 }
 
 /**
- * Display the user login form
- * @param {string} loc - location of the panel, either "local" or "remote"
+ * Display the user login form for remote
  * @param {string=} msg - if specified, the message to be shown on the error dialog
  */
-function showLoginForm(loc, msg) {
-    var ele_actions = ( loc == 'local' ) ? $("#action_local"):$("#action_remote");
-    var ele_errmsg = ( loc == 'local' ) ? $("#login_error_local"):$("#login_error_remote");
-    var ele_filetree = ( loc == 'local' ) ? $("#filetree_local"):$("#filetree_remote");
-    var ele_form = ( loc == 'local' ) ? $("#local_login_form"):$("#remote_login_form");
-    var ele_username = ( loc == 'local' ) ? $("#fs_username_local"):$("#fs_username_remote");
+function showLoginFormRemote(msg) {
+    var ele_actions = $("#action_remote");
+    var ele_errmsg = $("#login_error_remote");
+    var ele_filetree = $("#filetree_remote");
+    var ele_form = $("#remote_login_form");
+    var ele_username = $("#fs_username_remote");
 
     // hide filetree and action buttons
     ele_filetree.hide();
@@ -82,7 +81,7 @@ function showFileSystemTree(loc, root) {
     var ele_userbutton = ( loc == 'local' ) ? $("#button_user_local"):$("#button_user_remote");
     var ele_mkdir = ( loc == 'local' ) ? $("#button_mkdir_local"):$("#button_mkdir_remote");
     var ele_username = ( loc == 'local' ) ? $("#fs_username_local"):$("#fs_username_remote");
-    var u = ( loc == 'local' ) ? Cookies.get('username_local'):Cookies.get('username_remote');
+    var u = ( loc == 'local' ) ? params.StagerUsername:Cookies.get('username_remote');
     var login_path = ( loc == 'local' ) ? params.l_fs_path_login:params.r_fs_path_login;
     var init_root = ( loc == 'local' ) ? params.l_fs_root:params.r_fs_root;
     var mkdir_path = ( loc == 'local' ) ? params.l_fs_path_mkdir:params.r_fs_path_mkdir;
@@ -91,8 +90,8 @@ function showFileSystemTree(loc, root) {
     root=htmlDecodeSpace(root);
     init_root=htmlDecodeSpace(init_root);
 
-    if ( typeof(u) === 'undefined' && login_path ) {
-        showLoginForm(loc, '');
+    if ( loc === "remote" && typeof(u) === 'undefined' && login_path ) {
+        showLoginFormRemote('');
     } else {
 
         // hide login form
@@ -220,19 +219,18 @@ function showFileSystemTree(loc, root) {
 }
 
 /**
- * Perform user login, on success display the top-level directory tree
- * @param {string} loc - location of the panel, either "local" or "remote"
+ * Perform remote user login, on success display the top-level directory tree
  * @param {string} user - the username
  * @param {string} credential - the jQuery serialized form data from the login form
  */
-function doUserLogin( loc, user, credential ) {
-    var login_path = ( loc == 'local' ) ? params.l_fs_path_login:params.r_fs_path_login;
-    var init_root = ( loc == 'local' ) ? params.l_fs_root:params.r_fs_root;
-    var fs_server = ( loc == 'local' ) ? params.l_fs_server:params.r_fs_server;
+function doUserLoginRemote( user, credential ) {
+    var login_path = params.r_fs_path_login;
+    var init_root = params.r_fs_root;
+    var fs_server = params.r_fs_server;
     $.post(login_path, credential, function(data) {
         //console.log(data);
     }).done( function() {
-        Cookies.set('username_' + loc , user);
+        Cookies.set('username_remote' , user);
         showFileSystemTree(loc, init_root);
     }).fail( function() {
         showAppError('Authentication failure: ' + fs_server);
@@ -240,16 +238,15 @@ function doUserLogin( loc, user, credential ) {
 }
 
 /**
- * Perform user logout, it removes relevent cookie variable
- * @param {string} loc - location of the panel, either "local" or "remote"
+ * Perform user logout for remote, it removes relevent cookie variable
  */
-function doUserLogout( loc ) {
-    var logout_path = ( loc == 'local' ) ? params.l_fs_path_logout:params.r_fs_path_logout;
-    var fs_server = ( loc == 'local' ) ? params.l_fs_server:params.r_fs_server;
+function doUserLogoutRemote() {
+    var logout_path = params.r_fs_path_logout;
+    var fs_server = params.r_fs_server;
     $.post(logout_path, function(data) {
         showAppInfo(fs_server + " user logged out");
-        Cookies.remove('username_' + loc);
-        showLoginForm(loc,'');
+        Cookies.remove('username_remote');
+        showLoginFormRemote('');
     }).fail( function() {
         showAppError('fail logout ' + fs_server + ' user');
     });
@@ -879,11 +876,6 @@ function runStagerUI(params) {
         $($("#filetree_local").get(0)).find('#jstree').jstree(true).refresh();
     });
 
-    // event listener for logging out local user
-    $('#button_logout_local').click(function() {
-        doUserLogout('local');
-    });
-
     // event listener for toggling local mkdir dialog
     $('#button_mkdir_local').click(function() {
         showMakeDirDialog('local');
@@ -899,14 +891,6 @@ function runStagerUI(params) {
         doDeselectAll('local');
     });
 
-    // event listener for logging in local user
-    $('#login_form_local').on( 'submit', function( event ) {
-        event.preventDefault();
-        doUserLogin('local',
-            $(this).find('input[name="username"]').val(),
-            $(this).serialize());
-    });
-
     // event listener for refreshing remote fs tree
     $('#button_refresh_remote').click(function() {
         $($("#filetree_remote").get(0)).find('#jstree').jstree(true).refresh();
@@ -914,7 +898,7 @@ function runStagerUI(params) {
 
     // event listener for logging out remote user
     $('#button_logout_remote').click(function() {
-        doUserLogout('remote');
+        doUserLogoutRemote();
     });
 
     // event listener for toggling remote mkdir dialog
@@ -935,9 +919,10 @@ function runStagerUI(params) {
     // event listener for logging in remote user
     $('#login_form_remote').on( 'submit', function( event ) {
         event.preventDefault();
-        doUserLogin('remote',
+        doUserLoginRemote(
             $(this).find('input[name="username"]').val(),
-            $(this).serialize());
+            $(this).serialize()
+        );
     });
 
     // event listener for maunally update job history
@@ -967,15 +952,11 @@ function runStagerUI(params) {
     });
 
     /* local filetree or login initialisation */
-    if ( params.l_fs_view == "login" ) {
-        showLoginForm('local','');
-    } else {
-        showFileSystemTree('local', params.l_fs_root);
-    }
+    showFileSystemTree('local', params.l_fs_root);
 
     /* remote filetree or login initialisation */
     if ( params.r_fs_view == "login" ) {
-        showLoginForm('remote','');
+        showLoginFormRemote('');
     } else {
         showFileSystemTree('remote', params.r_fs_root);
     }
