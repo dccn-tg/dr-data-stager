@@ -64,13 +64,6 @@ app.use('/stager', apiRoutesStager)
 // main webapp page
 app.use('/', appRoutes);
 
-// catch 404 and forward to error handler
-app.use(function(_, _, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
-
 // error handlers
 app.use(function(err, _, res, _) {
   if (err.status == 401) {

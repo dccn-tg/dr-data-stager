@@ -7,11 +7,12 @@ const createError = require("http-errors");
  * an authenticated session.
  * 
  */
-const _isAuthenticated = function(req, res, next) {
+const _isAuthenticated = function(req, _, next) {
     if (req.user && req.user.validUntil > (Date.now()/1000)) {
         next();
+    } else {
+        next(createError(401, new Error("Unauthorized")));
     }
-    next(createError(401, new Error("Unauthorized")));
 }
 
 // Middleware to verify admin credentials via authorization header
