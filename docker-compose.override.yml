@@ -1,12 +1,5 @@
 version: "3.7"
 services:
-  api-server:
-    volumes:
-      - ${HOME_VOL:-/home}:/home
-      - ${PROJECT_VOL:-/project}:/project
-      - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
-      - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
-
   worker:
     volumes:
       - ${HOME_VOL:-/home}:/home

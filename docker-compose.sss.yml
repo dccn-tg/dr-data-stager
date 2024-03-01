@@ -1,0 +1,7 @@
+# enable worker to get system users from host's sssd
+version: "3.7"
+services:
+  worker:
+    volumes:
+      - /var/lib/sss/pipes:/var/lib/sss/pipes
+      - /var/lib/sss/mc:/var/lib/sss/mc:ro

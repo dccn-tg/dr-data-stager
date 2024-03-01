@@ -3,6 +3,8 @@ services:
   db:
     image: redis
     user: root
+    volumes:
+      - ${TASK_DB_REDIS_DATA:-stager_db_data}:/data
     command: --appendonly yes
 
   api-server:
@@ -14,10 +16,10 @@ services:
     ports:
       - ${API_EXTERNAL_PORT:-8080}:8080
     volumes:
-      - ${API_CONFIG:-/mnt/docker/scripts/microservices/data-stager/api-server.yml}:/etc/stager/api-server.yml:ro
+      - ${API_CONFIG:-./config/api-server.yml}:/etc/stager/api-server.yml:ro
     depends_on:
       - db
-    command: -p 8080 -r redis://db:6379 -c /etc/stager/api-server.yml
+    command: -v -p 8080 -r redis://db:6379 -c /etc/stager/api-server.yml
     logging:
       driver: "json-file"
       options:
@@ -31,11 +33,11 @@ services:
     image: ${DOCKER_REGISTRY:-dccn}/data-stager-worker:${DOCKER_IMAGE_TAG:-latest}
     user: root
     volumes:
-      - ${IRODS_ICAT_CERT:-/mnt/docker/scripts/microservices/data-stager/icat.pem}:/opt/irods/ssl/icat.pem:ro
-      - ${WORKER_CONFIG:-/mnt/docker/scripts/microservices/data-stager/worker.yml}:/etc/stager/worker.yml:ro
+      - ${IRODS_ICAT_CERT:-./docker/worker/icat.pem}:/opt/irods/ssl/icat.pem:ro
+      - ${WORKER_CONFIG:-./config/worker.yml}:/etc/stager/worker.yml:ro
     depends_on:
       - api-server
-    command: -r redis://db:6379 -c /etc/stager/worker.yml
+    command: -v -r redis://db:6379 -c /etc/stager/worker.yml
     logging:
       driver: "json-file"
       options:
@@ -55,3 +57,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
+
+volumes:
+  stager_db_data:
+    
