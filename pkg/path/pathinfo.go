@@ -2,12 +2,16 @@ package path
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
 
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
 	"github.com/cyverse/go-irodsclient/fs"
+	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
 // PathInfo defines a data structure of the path information.
@@ -20,8 +24,8 @@ type PathInfo struct {
 	Mode os.FileMode
 	// Size
 	Size int64
-	// Checksum
-	Checksum string
+	// checksum
+	checksum string
 }
 
 func (p PathInfo) CountFiles(ctx context.Context) int {
@@ -32,19 +36,44 @@ func (p PathInfo) CountFiles(ctx context.Context) int {
 	return scanner.CountFilesInDir(ctx, p.Path)
 }
 
+func (p PathInfo) GetChecksum() string {
+	if p.checksum != "" {
+		return p.checksum
+	}
+
+	if p.Type == TypeFileSystem {
+		// calculate checksum for local file
+		f, err := os.Open(p.Path)
+		if err != nil {
+			log.Errorf("%s\n", err)
+		}
+		defer f.Close()
+
+		h := sha256.New()
+		if _, err := io.Copy(h, f); err != nil {
+			log.Errorf("%s\n", err)
+		}
+
+		p.checksum = fmt.Sprintf("%x", h.Sum(nil))
+	}
+
+	return p.checksum
+}
+
 func (p PathInfo) SameAs(ctx context.Context, o PathInfo) bool {
 
-	return p.Size == o.Size
+	if p.Size != o.Size {
+		return false
+	}
 
-	// if p.Size != o.Size {
-	// 	return false
-	// }
+	sum1 := o.GetChecksum()
+	sum2 := p.GetChecksum()
 
-	// if o.Checksum == "" || p.Checksum == "" {
-	// 	return false
-	// }
+	if sum1 == "" || sum2 == "" {
+		return false
+	}
 
-	// return o.Checksum == p.Checksum
+	return sum1 == sum2
 }
 
 // GetPathInfo resolves the PathInfo of the given path.
@@ -68,7 +97,9 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 
 		if entry.Type == fs.FileEntry {
 			info.Mode = 0
-			info.Checksum = entry.CheckSum
+
+			// iRODS file entry contains checksum if it is available
+			info.checksum = entry.CheckSum
 			info.Size = entry.Size
 			return info, nil
 		}
@@ -80,6 +111,7 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 
 	}
 
+	// local file
 	info.Path = path
 	info.Type = TypeFileSystem
 

@@ -134,18 +134,19 @@ func syncWorker(
 
 				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 0, false, nil)
 
-				// trigger checksum calculation
+				// trigger checksum calculation on server side, and compare checksum
 				if err == nil {
-					if conn, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).GetMetadataConnection(); err == nil {
+					if conn, xerr := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).GetMetadataConnection(); xerr == nil {
 
 						defer ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).ReturnMetadataConnection(conn)
 
-						if chksum, err := ifs.GetDataObjectChecksum(conn, fdst, ""); err != nil {
-							log.Errorf("cannot request checksum: %s\n", err)
+						if chksum, xerr := ifs.GetDataObjectChecksum(conn, fdst, ""); xerr != nil {
+							log.Errorf("cannot request checksum: %s\n", xerr)
 						} else {
 							log.Debugf("%s (%s)\n", fdst, chksum.GetChecksumString())
-
-							// TODO: compare checksum to confirm the file is correctly uploaded
+							if psrc.GetChecksum() != chksum.GetChecksumString() {
+								err = fmt.Errorf("checksum differs")
+							}
 						}
 					}
 				}
