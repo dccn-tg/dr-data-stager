@@ -20,3 +20,5 @@ log/
 **/test.sh
 
 **/*.dev.*
+
+**/icat-*.pem
