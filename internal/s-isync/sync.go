@@ -87,6 +87,7 @@ func syncWorker(
 			var fdst string
 			if src.Mode.IsRegular() && !dst.Mode.IsDir() {
 				// destination isn't a directory, then it should be used as the destination file path.
+				// Note: !! missing parent directories of `dst.Path` will throw error in transfer !!
 				fdst = dst.Path
 			} else {
 				// `dst` is an existing directory/collection, construct the
@@ -111,10 +112,28 @@ func syncWorker(
 
 				// get file from irods
 				log.Debugf("irods get: %s -> %s\n", fsrc, fdst)
+
+				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 0, nil)
+
+				// checksum or size comparison for downloaded file
+				if err == nil {
+					sumSrc := psrc.GetChecksum()
+					if sumSrc != "" {
+						if pdst.GetChecksum() != sumSrc {
+							err = fmt.Errorf("file checksum differs")
+						}
+					} else {
+						if pdst.Size != psrc.Size {
+							err = fmt.Errorf("file size differs")
+						}
+					}
+				}
+
 				processed <- syncOutput{
 					File:  fsrc,
-					Error: ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 0, nil),
+					Error: err,
 				}
+
 			case src.Type == ppath.TypeFileSystem && dst.Type == ppath.TypeIrods:
 
 				pdst, _ := ppath.GetPathInfo(ctx, fmt.Sprintf("i:%s", fdst))
@@ -134,7 +153,7 @@ func syncWorker(
 
 				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 0, false, nil)
 
-				// trigger checksum calculation on server side, and compare checksum
+				// trigger checksum calculation on server side, and compare checksum for uploaded file
 				if err == nil {
 					if conn, xerr := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).GetMetadataConnection(); xerr == nil {
 
@@ -143,9 +162,8 @@ func syncWorker(
 						if chksum, xerr := ifs.GetDataObjectChecksum(conn, fdst, ""); xerr != nil {
 							log.Errorf("cannot request checksum: %s\n", xerr)
 						} else {
-							log.Debugf("%s (%s)\n", fdst, chksum.GetChecksumString())
-							if psrc.GetChecksum() != chksum.GetChecksumString() {
-								err = fmt.Errorf("checksum differs")
+							if chksum.GetChecksumString() != psrc.GetChecksum() {
+								err = fmt.Errorf("file checksum differs")
 							}
 						}
 					}
