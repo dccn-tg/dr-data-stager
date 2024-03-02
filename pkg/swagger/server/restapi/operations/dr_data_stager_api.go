@@ -47,6 +47,9 @@ func NewDrDataStagerAPI(spec *loads.Document) *DrDataStagerAPI {
 		DeleteJobIDHandler: DeleteJobIDHandlerFunc(func(params DeleteJobIDParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation DeleteJobID has not yet been implemented")
 		}),
+		GetDirHandler: GetDirHandlerFunc(func(params GetDirParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation GetDir has not yet been implemented")
+		}),
 		GetJobIDHandler: GetJobIDHandlerFunc(func(params GetJobIDParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation GetJobID has not yet been implemented")
 		}),
@@ -118,6 +121,8 @@ type DrDataStagerAPI struct {
 
 	// DeleteJobIDHandler sets the operation handler for the delete job ID operation
 	DeleteJobIDHandler DeleteJobIDHandler
+	// GetDirHandler sets the operation handler for the get dir operation
+	GetDirHandler GetDirHandler
 	// GetJobIDHandler sets the operation handler for the get job ID operation
 	GetJobIDHandler GetJobIDHandler
 	// GetJobsStatusHandler sets the operation handler for the get jobs status operation
@@ -212,6 +217,9 @@ func (o *DrDataStagerAPI) Validate() error {
 
 	if o.DeleteJobIDHandler == nil {
 		unregistered = append(unregistered, "DeleteJobIDHandler")
+	}
+	if o.GetDirHandler == nil {
+		unregistered = append(unregistered, "GetDirHandler")
 	}
 	if o.GetJobIDHandler == nil {
 		unregistered = append(unregistered, "GetJobIDHandler")
@@ -332,6 +340,10 @@ func (o *DrDataStagerAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/job/{id}"] = NewDeleteJobID(o.context, o.DeleteJobIDHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/dir"] = NewGetDir(o.context, o.GetDirHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

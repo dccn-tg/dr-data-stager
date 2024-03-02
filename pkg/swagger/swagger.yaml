@@ -162,6 +162,41 @@ paths:
         500:
           description: failure
           schema:
+            $ref: '#/definitions/responseBody500'
+
+  /dir:
+    get:
+      summary: get entities within a filesystem path
+      security:
+        - oauth2: [data-stager]
+        - basicAuth: []
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: path
+          description: path
+          type: string
+          required: true
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/responseDirEntries'
+        400:
+          description: bad request
+          schema:
+            $ref: '#/definitions/responseBody400'
+        404:
+          description: path not found
+          schema:
+            type: string
+            enum: [path not found]
+        500:
+          description: failure
+          schema:
             $ref: '#/definitions/responseBody500'      
 
 # object definitions
@@ -197,6 +232,32 @@ definitions:
       - id
       - data
       - status
+
+  responseDirEntries:
+    description: JSON object containing dir entries.
+    properties:
+      entries:
+        type: array
+        items:
+          $ref: '#/definitions/dirEntry'
+
+  dirEntry:
+    description: directory entry
+    properties:
+      name:
+        description: name of the entry
+        type: string
+      type:
+        description: type of the entry
+        type: string
+        enum: [regular, dir, symlink, unknown]
+      size:
+        description: size of the entry in bytes
+        type: integer
+    required:
+      - name
+      - type
+      - size
 
   responseBodyJobs:
     description: JSON object containing a list of job information.

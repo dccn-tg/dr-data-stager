@@ -61,6 +61,11 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.DeleteJobID has not yet been implemented")
 		})
 	}
+	if api.GetDirHandler == nil {
+		api.GetDirHandler = operations.GetDirHandlerFunc(func(params operations.GetDirParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetDir has not yet been implemented")
+		})
+	}
 	if api.GetJobIDHandler == nil {
 		api.GetJobIDHandler = operations.GetJobIDHandlerFunc(func(params operations.GetJobIDParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation operations.GetJobID has not yet been implemented")

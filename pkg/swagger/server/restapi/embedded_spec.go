@@ -26,6 +26,65 @@ func init() {
   },
   "basePath": "/v1",
   "paths": {
+    "/dir": {
+      "get": {
+        "security": [
+          {
+            "oauth2": [
+              "data-stager"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "get entities within a filesystem path",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "path",
+            "name": "path",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseDirEntries"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "$ref": "#/definitions/responseBody400"
+            }
+          },
+          "404": {
+            "description": "path not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "path not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/job": {
       "post": {
         "security": [
@@ -275,6 +334,34 @@ func init() {
     }
   },
   "definitions": {
+    "dirEntry": {
+      "description": "directory entry",
+      "required": [
+        "name",
+        "type",
+        "size"
+      ],
+      "properties": {
+        "name": {
+          "description": "name of the entry",
+          "type": "string"
+        },
+        "size": {
+          "description": "size of the entry in bytes",
+          "type": "integer"
+        },
+        "type": {
+          "description": "type of the entry",
+          "type": "string",
+          "enum": [
+            "regular",
+            "dir",
+            "symlink",
+            "unknown"
+          ]
+        }
+      }
+    },
     "jobData": {
       "description": "job data",
       "required": [
@@ -426,6 +513,17 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/responseBodyJobInfo"
+          }
+        }
+      }
+    },
+    "responseDirEntries": {
+      "description": "JSON object containing dir entries.",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/dirEntry"
           }
         }
       }
@@ -454,6 +552,65 @@ func init() {
   },
   "basePath": "/v1",
   "paths": {
+    "/dir": {
+      "get": {
+        "security": [
+          {
+            "oauth2": [
+              "data-stager"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "get entities within a filesystem path",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "path",
+            "name": "path",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseDirEntries"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "$ref": "#/definitions/responseBody400"
+            }
+          },
+          "404": {
+            "description": "path not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "path not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/job": {
       "post": {
         "security": [
@@ -703,6 +860,34 @@ func init() {
     }
   },
   "definitions": {
+    "dirEntry": {
+      "description": "directory entry",
+      "required": [
+        "name",
+        "type",
+        "size"
+      ],
+      "properties": {
+        "name": {
+          "description": "name of the entry",
+          "type": "string"
+        },
+        "size": {
+          "description": "size of the entry in bytes",
+          "type": "integer"
+        },
+        "type": {
+          "description": "type of the entry",
+          "type": "string",
+          "enum": [
+            "regular",
+            "dir",
+            "symlink",
+            "unknown"
+          ]
+        }
+      }
+    },
     "jobData": {
       "description": "job data",
       "required": [
@@ -854,6 +1039,17 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/responseBodyJobInfo"
+          }
+        }
+      }
+    },
+    "responseDirEntries": {
+      "description": "JSON object containing dir entries.",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/dirEntry"
           }
         }
       }
