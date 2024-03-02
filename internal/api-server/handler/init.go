@@ -1,9 +1,15 @@
 package handler
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os/exec"
+	"os/user"
+	"strconv"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/api-server/config"
@@ -43,6 +49,9 @@ var (
 
 	// JobCreateError indicates failure creating/registering new job to the stager job queue.
 	JobCreateError int64 = 103
+
+	// FileSystemError indicates failure on filesystem operation
+	FileSystemError int64 = 104
 )
 
 // Common payload for the ResponseBody500.
@@ -169,6 +178,102 @@ func DeleteJob(ctx context.Context, inspector *asynq.Inspector) func(params oper
 	}
 }
 
+func ListDir(ctx context.Context) func(params operations.GetDirParams, principal *models.Principal) middleware.Responder {
+	return func(params operations.GetDirParams, principal *models.Principal) middleware.Responder {
+
+		cout, cerr, cmd, err := runCmdAs(
+			string(*principal),
+			"ls",
+			"-l",
+			"-G",
+			"-g",
+			`--time-style=+%s`,
+			params.Path,
+		)
+
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewGetDirInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     FileSystemError,
+				},
+			)
+		}
+
+		// catching stderr output
+		done := make(chan error, 1)
+		go func() {
+			defer close(done)
+			lastErr := ""
+			for lerr := range cerr {
+				lastErr = lerr
+			}
+			done <- fmt.Errorf("%s", lastErr)
+		}()
+
+		// process stdout line by line
+		var entries []*models.DirEntry
+
+		for lout := range cout {
+
+			fields := strings.Fields(lout)
+
+			if len(fields) < 5 {
+				continue
+			}
+
+			// file type
+			ftype := models.DirEntryTypeUnknown
+			switch string(fields[0])[0] {
+			case 'd':
+				ftype = models.DirEntryTypeDir
+			case '-':
+				ftype = models.DirEntryTypeRegular
+			case 'l':
+				ftype = models.DirEntryTypeSymlink
+			}
+
+			// file size
+			fsize := int64(0)
+			s, err := strconv.Atoi(fields[2])
+			if err != nil {
+				log.Errorf("unknown file size: %s\n", fields[2])
+			} else {
+				fsize = int64(s)
+			}
+
+			_, fname, _ := strings.Cut(lout, fields[3])
+			fname = strings.TrimSpace(fname)
+
+			// file name
+			entries = append(entries, &models.DirEntry{
+				Name: &fname,
+				Size: &fsize,
+				Type: &ftype,
+			})
+		}
+
+		// wait until the command is finished
+		lastErr := <-done
+		err = cmd.Wait()
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewGetDirInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: fmt.Sprintf("%s: %s", err.Error(), lastErr),
+					ExitCode:     FileSystemError,
+				},
+			)
+		}
+		return operations.NewGetDirOK().WithPayload(
+			&models.ResponseDirEntries{
+				Entries: entries,
+			},
+		)
+	}
+}
+
 // NewJob registers the incoming transfer request as a new stager job in the queue.
 func NewJob(ctx context.Context, client *asynq.Client) func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
@@ -248,6 +353,63 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 
 		return operations.NewPostJobOK().WithPayload(res)
 	}
+}
+
+// runCmdAs spawns a new process and run the `cmd` with `args` as the `username`.
+func runCmdAs(username string, cmd string, args ...string) (chan string, chan string, *exec.Cmd, error) {
+
+	c := exec.Command(cmd, args...)
+
+	if username != "" {
+		u, err := user.Lookup(username)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		uid, _ := strconv.ParseInt(u.Uid, 10, 32)
+		gid, _ := strconv.ParseInt(u.Gid, 10, 32)
+
+		c.SysProcAttr = &syscall.SysProcAttr{}
+		c.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
+	}
+
+	stdout, err := c.StdoutPipe()
+	if err != nil {
+		return nil, nil, c, err
+	}
+
+	stderr, err := c.StderrPipe()
+	if err != nil {
+		return nil, nil, c, err
+	}
+
+	//log.Debugf("run command %s as %s (%d:%d)\n", cmd, username, uid, gid)
+	if err := c.Start(); err != nil {
+		return nil, nil, c, err
+	}
+
+	cout := make(chan string, 1)
+	// go routine to read the cmd's stdout line-by-line
+	go func() {
+		defer close(cout)
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			cout <- strings.TrimSpace(scanner.Text())
+		}
+	}()
+
+	cerr := make(chan string, 1)
+	// go routine to read and process the stderr
+	go func() {
+		defer close(cerr)
+		// read stderr
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			cerr <- strings.TrimSpace(scanner.Text())
+		}
+	}()
+
+	return cout, cerr, c, nil
 }
 
 // findTask looks into different queues to retrieve the TaskInfo, or return an error if not found.

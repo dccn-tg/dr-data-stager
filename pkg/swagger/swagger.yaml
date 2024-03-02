@@ -13,9 +13,10 @@ securityDefinitions:
   oauth2:
     type: oauth2
     flow: application
-    tokenUrl: 'https://auth-dev.dccn.nl/connect/token'
+    tokenUrl: 'https://login.dccn.nl/connect/token'
     scopes:
-      data-stager: general access scope for data-stager APIs
+      urn:dccn:data-stager:*: general access scope for data-stager server APIs
+      urn:dccn:identity:uid: scope for accessing user id
 
 # API paths
 paths:
@@ -42,7 +43,7 @@ paths:
     get:
       summary: get list of jobs at given status
       security:
-        - oauth2: [data-stager]
+        - oauth2: [urn:dccn:data-stager:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -73,7 +74,7 @@ paths:
     post:
       summary: create a new stager job
       security:
-        - oauth2: [data-stager]
+        - oauth2: [urn:dccn:data-stager:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -100,7 +101,7 @@ paths:
     get:
       summary: get stager job information
       security:
-        - oauth2: [data-stager]
+        - oauth2: [urn:dccn:data-stager:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -133,7 +134,7 @@ paths:
     delete:
       summary: cancel a stager job
       security:
-        - oauth2: [data-stager]
+        - oauth2: [urn:dccn:data-stager:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -168,7 +169,7 @@ paths:
     get:
       summary: get entities within a filesystem path
       security:
-        - oauth2: [data-stager]
+        - oauth2: [urn:dccn:identity:uid]
         - basicAuth: []
       consumes:
         - application/json

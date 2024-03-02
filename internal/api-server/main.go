@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"time"
 
@@ -127,8 +130,14 @@ func main() {
 
 		pass, ok := cfg.Auth[username]
 
-		if !ok || pass != password {
+		if ok && pass != password {
 			return nil, errors.New(401, "incorrect username/password")
+		}
+
+		// username not in the static credential list, assuming that the password is a oauth2 access token
+		token, err := verifyJwt(password, cfg.Oauth2.JwksEndpoint)
+		if err != nil || !token.Valid {
+			return nil, errors.New(401, "invalid token: %s", err)
 		}
 
 		// there is login user information attached, set the pricipal as the username.
@@ -139,40 +148,9 @@ func main() {
 	// authentication with oauth2 token.
 	api.Oauth2Auth = func(tokenStr string, scopes []string) (*models.Principal, error) {
 
-		// custom claims data structure, this should match the
-		// data structure expected from the authentication server.
-		type IDServerClaims struct {
-			Scope    []string `json:"scope"`
-			Audience []string `json:"aud"`
-			ClientID string   `json:"client_id"`
-			jwt.StandardClaims
-		}
+		token, err := verifyJwt(tokenStr, cfg.Oauth2.JwksEndpoint)
 
-		token, err := jwt.ParseWithClaims(tokenStr, &IDServerClaims{}, func(token *jwt.Token) (interface{}, error) {
-
-			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-				return nil, errors.New(401, "unexpected signing method: %v", token.Header["alg"])
-			}
-
-			// get public key from the auth server
-			// TODO: discover jwks endpoint using oidc client.
-			jwksSource := jwks.NewWebSource(cfg.JwksEndpoint)
-			jwksClient := jwks.NewDefaultClient(
-				jwksSource,
-				time.Hour,    // Refresh keys every 1 hour
-				12*time.Hour, // Expire keys after 12 hours
-			)
-
-			var jwk *jose.JSONWebKey
-			jwk, err := jwksClient.GetEncryptionKey(token.Header["kid"].(string))
-			if err != nil {
-				return nil, errors.New(401, "cannot retrieve encryption key: %s", err)
-			}
-
-			return jwk.Key, nil
-		})
-
-		if err != nil {
+		if err != nil || !token.Valid {
 			return nil, errors.New(401, "invalid token: %s", err)
 		}
 
@@ -197,7 +175,17 @@ func main() {
 			}
 		}
 
-		principal := models.Principal(claims.ClientID)
+		uid := claims.ClientID
+		// retrieve user profile if "urn:dccn:identity:uid" in the scopes of the token
+		// use "urn:dccn:uid" of the profile as the principal.
+		if hasScope(claims.Scope, "urn:dccn:identity:uid") {
+			uinfo, err := oauth2GetUserInfo(tokenStr, cfg.Oauth2.UserInfoEndpoint)
+			if err != nil {
+				return nil, errors.New(401, "cannot get userinfo: %s", err)
+			}
+			uid = uinfo.Uid
+		}
+		principal := models.Principal(uid)
 		return &principal, nil
 	}
 
@@ -205,6 +193,7 @@ func main() {
 	api.GetJobIDHandler = operations.GetJobIDHandlerFunc(handler.GetJob(ctx, inspector))
 	api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(handler.DeleteJob(ctx, inspector))
 	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, client))
+	api.GetDirHandler = operations.GetDirHandlerFunc(handler.ListDir(ctx))
 
 	// configure API
 	server.ConfigureAPI()
@@ -213,4 +202,83 @@ func main() {
 	if err := server.Serve(); err != nil {
 		log.Fatalf("%s", err)
 	}
+}
+
+func hasScope(scopes []string, scope string) bool {
+	for _, s := range scopes {
+		if s == scope {
+			return true
+		}
+	}
+	return false
+}
+
+// custom claims data structure, this should match the
+// data structure expected from the authentication server.
+type IDServerClaims struct {
+	Scope    []string `json:"scope"`
+	Audience []string `json:"aud"`
+	ClientID string   `json:"client_id"`
+	jwt.StandardClaims
+}
+
+func verifyJwt(tokenStr, jwksEndpoint string) (*jwt.Token, error) {
+
+	return jwt.ParseWithClaims(tokenStr, &IDServerClaims{}, func(token *jwt.Token) (interface{}, error) {
+
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, errors.New(401, "unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// get public key from the auth server
+		// TODO: discover jwks endpoint using oidc client.
+		jwksSource := jwks.NewWebSource(jwksEndpoint)
+		jwksClient := jwks.NewDefaultClient(
+			jwksSource,
+			time.Hour,    // Refresh keys every 1 hour
+			12*time.Hour, // Expire keys after 12 hours
+		)
+
+		var jwk *jose.JSONWebKey
+		jwk, err := jwksClient.GetEncryptionKey(token.Header["kid"].(string))
+		if err != nil {
+			return nil, errors.New(401, "cannot retrieve encryption key: %s", err)
+		}
+
+		return jwk.Key, nil
+	})
+}
+
+type OauthUserInfo struct {
+	Uid string `json:"urn:dccn:uid,omitempty"`
+}
+
+func oauth2GetUserInfo(tokenStr, url string) (*OauthUserInfo, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tokenStr))
+
+	client := http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("GET %s (%s) %s\n", url, res.Status, resBody)
+
+	var uinfo OauthUserInfo
+	if err := json.Unmarshal(resBody, &uinfo); err != nil {
+		return nil, err
+	}
+
+	return &uinfo, nil
 }

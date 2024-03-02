@@ -31,7 +31,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:identity:uid"
             ]
           },
           {
@@ -90,7 +90,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -136,7 +136,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -193,7 +193,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -252,7 +252,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -536,9 +536,10 @@ func init() {
     "oauth2": {
       "type": "oauth2",
       "flow": "application",
-      "tokenUrl": "https://auth-dev.dccn.nl/connect/token",
+      "tokenUrl": "https://login.dccn.nl/connect/token",
       "scopes": {
-        "data-stager": "general access scope for data-stager APIs"
+        "urn:dccn:data-stager:*": "general access scope for data-stager server APIs",
+        "urn:dccn:identity:uid": "scope for accessing user id"
       }
     }
   }
@@ -557,7 +558,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:identity:uid"
             ]
           },
           {
@@ -616,7 +617,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -662,7 +663,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -719,7 +720,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -778,7 +779,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "data-stager"
+              "urn:dccn:data-stager:*"
             ]
           },
           {
@@ -1062,9 +1063,10 @@ func init() {
     "oauth2": {
       "type": "oauth2",
       "flow": "application",
-      "tokenUrl": "https://auth-dev.dccn.nl/connect/token",
+      "tokenUrl": "https://login.dccn.nl/connect/token",
       "scopes": {
-        "data-stager": "general access scope for data-stager APIs"
+        "urn:dccn:data-stager:*": "general access scope for data-stager server APIs",
+        "urn:dccn:identity:uid": "scope for accessing user id"
       }
     }
   }

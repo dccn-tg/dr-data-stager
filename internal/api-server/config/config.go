@@ -11,8 +11,13 @@ import (
 // Configuration is the data structure for marshaling the
 // config.yml file using the viper configuration framework.
 type Configuration struct {
-	Auth         map[string]string
-	JwksEndpoint string
+	Auth   map[string]string
+	Oauth2 Oauth2Config
+}
+
+type Oauth2Config struct {
+	JwksEndpoint     string
+	UserInfoEndpoint string
 }
 
 // LoadConfig reads configuration file `cpath` and returns the
