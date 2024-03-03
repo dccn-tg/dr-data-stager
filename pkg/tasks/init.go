@@ -157,39 +157,11 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
+	// updata task progress
 	done := make(chan error, 1)
-	// go routine to process error and wait for the runSyncAs process to finish
 	go func() {
-		defer close(done)
-
-		var lastErr string
-		for msg := range cerr {
-			lastErr = msg
-		}
-
-		if e := cmd.Wait(); e != nil {
-			// capture the last error message as the task error
-			done <- fmt.Errorf(lastErr)
-		} else {
-			done <- e
-		}
-	}()
-
-	rslt := new(StagerTaskResult)
-	for {
-		select {
-		case err := <-done:
-			if err != nil {
-				log.Errorf("[%s] s-isync failed (%s)", t.ResultWriter().TaskID(), err)
-			}
-			return err
-		case progress, more := <-cout: // handle the output of a processed file
-
-			if !more {
-				// don't break the loop here
-				continue
-			}
-
+		rslt := new(StagerTaskResult)
+		for progress := range cout {
 			// stop timer
 			if !timer.Stop() {
 				<-timer.C
@@ -206,6 +178,32 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 
 			// reset timer
 			timer.Reset(time.Duration(p.TimeoutNoprogress) * time.Second)
+		}
+
+		// wait for command to stop
+		done <- cmd.Wait()
+	}()
+
+	lastErr := ""
+	// control loop for:
+	// - catch last message on stderr
+	// - cmd process has been finished
+	// - kill cmd process on timeout and process terminiation by context
+	for {
+		select {
+
+		case errStr, more := <-cerr:
+			if more {
+				lastErr = errStr
+			}
+		case e := <-done:
+
+			if e != nil {
+				err := fmt.Errorf("s-isync failed: %s - %s", e, lastErr)
+				log.Errorf("[%s] %s", t.ResultWriter().TaskID(), err)
+				return err
+			}
+			return nil
 
 		case <-timer.C:
 			// receive times up signal for `timeoutNoprogress`
