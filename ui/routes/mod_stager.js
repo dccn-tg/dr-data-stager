@@ -5,6 +5,8 @@ var util = require('../lib/utility');
 var express = require('express');
 var router = express.Router();
 
+const auth = require("./auth");
+
 /* retrieve job detail by the given id */
 var _getJobDetail = function(id, user, pass, cb) {
     var url = config.get('stager.restfulEndpoint') + '/job/' + id;
@@ -28,96 +30,70 @@ var _getJobDetail = function(id, user, pass, cb) {
     });
 }
 
-/* Authenticate user agains the Stager service */
-router.post('/login', function(request, response, next) {
-    var args = { headers: { "Accept": "application/json" } };
-
-    var c = new RestClient({user: request.body.username,
-                            password: request.body.password});
-
-    var req = c.post(config.get('stager.restfulEndpoint') + '/fslogin/stager', args, function(data, resp) {
-
-        try {
-            console.log('stager response status: ' + resp.statusCode);
-            if ( resp.statusCode == 200 ) {
-
-                // set session data
-                var sess = request.session;
-                if (typeof sess.user === "undefined" ||
-                    typeof sess.user === "undefined" ) {
-                    sess.user = {stager: request.body.username};
-                    sess.pass = {stager: request.body.password};
-                } else {
-                    sess.user.stager = request.body.username;
-                    sess.pass.stager = request.body.password;
-                }
-                response.status(200);
-                response.json(data);
-            } else {
-                response.status(404);
-                response.json({});
-            }
-        } catch(e) {
-            console.error(e);
-            util.responseOnError('json', {}, response);
-        }
-    }).on('error', function(e) {
-        console.error(e);
-        util.responseOnError('json', {}, response);
-    });
-});
-
-/* logout user by removing corresponding session data */
-router.post('/logout', function(request, response) {
-    var sess = request.session;
-    delete sess.user.stager;
-    delete sess.pass.stager;
-    response.json({'logout': true});
-});
-
 /* Get directory content for jsTree */
-router.get('/dir', function(request, response) {
+router.get('/dir', auth.isAuthenticated, function(request, response) {
 
-  var files = [];
-  var sess = request.session;
-  var dir = request.query.dir;
-  var isRoot = request.query.isRoot;
+    var files = [];
+    var dir = request.query.dir;
+    var isRoot = request.query.isRoot;
 
-  var args = { data: { dir: dir },
-               headers: { "Accept": "application/json",
-                          "Content-Type": "application/json" } };
+    var args = {
+        data: { path: dir },
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+    };
 
-  var c = new RestClient({user: sess.user.stager,
-                          password: sess.pass.stager});
+    var c = new RestClient({
+        user: request.user.username,
+        password: request.user.token
+    });
 
-  c.post(config.get('stager.restfulEndpoint') + '/fstree/stager', args, function(data, resp) {
+    var apiURL = config.get('stager.restfulEndpoint') + '/dir'
 
+    c.get(apiURL, args, function(data, resp) {
         try {
-            console.log('stager response status: ' + resp.statusCode);
             if ( resp.statusCode == 200 ) {
-               data.forEach( function(f) {
-                   if ( f.type == 'f' ) {
-                       files.push({
-                           id: path.join(dir, f.name),
-                           parent: isRoot === 'true' ? '#':dir,
-                           text: f.name,
-                           icon: 'fa fa-file-o',
-                           li_attr: {'title':''+f.size+' bytes'},
-                           children: false
-                       });
-                   } else {
-                       files.push({
-                           id: path.join(dir, f.name) + '/',
-                           parent: isRoot === 'true' ? '#':dir,
-                           text: f.name,
-                           icon: 'fa fa-folder',
-                           li_attr: {},
-                           children: true
-                       });
+                data.entries.forEach( function(f) {
+                    switch (f.type) {
+                        case 'dir':
+                            files.push({
+                                id: path.join(dir, f.name) + '/',
+                                parent: isRoot === 'true' ? '#':dir,
+                                text: f.name,
+                                icon: 'fa fa-folder',
+                                li_attr: {},
+                                children: true
+                            });
+                            break;
+                        case 'regular':
+                            files.push({
+                                id: path.join(dir, f.name),
+                                parent: isRoot === 'true' ? '#':dir,
+                                text: f.name,
+                                icon: 'fa fa-file-o',
+                                li_attr: {'title':''+f.size+' bytes'},
+                                children: false
+                            });
+                            break;
+                        case 'symlink':
+                            files.push({
+                                id: path.join(dir, f.name),
+                                parent: isRoot === 'true' ? '#':dir,
+                                text: f.name,
+                                icon: 'fa fa-file-o',
+                                li_attr: {'title':'symbolic link'},
+                                children: false
+                            });
+                            break;
+                        default:
+                            console.warn('ignore file with unknown type: ', path.join(dir, f.name));
                     }
                 });
                 response.json(files);
             } else {
+                console.error('GET', apiURL, 'args: ', JSON.stringify(args), 'status:', resp.statusCode);
                 util.responseOnError('json', [], response);
             }
         } catch(e) {

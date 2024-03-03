@@ -47,11 +47,13 @@ func init() {
         "summary": "get entities within a filesystem path",
         "parameters": [
           {
-            "type": "string",
-            "description": "path",
-            "name": "path",
-            "in": "query",
-            "required": true
+            "description": "the directory",
+            "name": "dir",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/dirPath"
+            }
           }
         ],
         "responses": {
@@ -59,21 +61,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/responseDirEntries"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
-            }
-          },
-          "404": {
-            "description": "path not found",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "path not found"
-              ]
             }
           },
           "500": {
@@ -359,6 +346,18 @@ func init() {
             "symlink",
             "unknown"
           ]
+        }
+      }
+    },
+    "dirPath": {
+      "description": "directory path data",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "description": "path of the directory",
+          "type": "string"
         }
       }
     },
@@ -574,11 +573,13 @@ func init() {
         "summary": "get entities within a filesystem path",
         "parameters": [
           {
-            "type": "string",
-            "description": "path",
-            "name": "path",
-            "in": "query",
-            "required": true
+            "description": "the directory",
+            "name": "dir",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/dirPath"
+            }
           }
         ],
         "responses": {
@@ -586,21 +587,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/responseDirEntries"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
-            }
-          },
-          "404": {
-            "description": "path not found",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "path not found"
-              ]
             }
           },
           "500": {
@@ -886,6 +872,18 @@ func init() {
             "symlink",
             "unknown"
           ]
+        }
+      }
+    },
+    "dirPath": {
+      "description": "directory path data",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "description": "path of the directory",
+          "type": "string"
         }
       }
     },

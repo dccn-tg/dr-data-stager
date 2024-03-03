@@ -176,25 +176,17 @@ paths:
       produces:
         - application/json
       parameters:
-        - in: query
-          name: path
-          description: path
-          type: string
+        - in: body
+          name: dir
+          description: the directory
           required: true
+          schema:
+            $ref: '#/definitions/dirPath'
       responses:
         200:
           description: success
           schema:
             $ref: '#/definitions/responseDirEntries'
-        400:
-          description: bad request
-          schema:
-            $ref: '#/definitions/responseBody400'
-        404:
-          description: path not found
-          schema:
-            type: string
-            enum: [path not found]
         500:
           description: failure
           schema:
@@ -241,6 +233,15 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/dirEntry'
+
+  dirPath:
+    description: directory path data
+    properties:
+      path:
+        description: path of the directory
+        type: string
+    required:
+      - path
 
   dirEntry:
     description: directory entry

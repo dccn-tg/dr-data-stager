@@ -6,13 +6,15 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
+
+	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
 )
 
 // NewGetDirParams creates a new GetDirParams object
@@ -32,11 +34,11 @@ type GetDirParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*path
+	/*the directory
 	  Required: true
-	  In: query
+	  In: body
 	*/
-	Path string
+	Dir *models.DirPath
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -48,35 +50,35 @@ func (o *GetDirParams) BindRequest(r *http.Request, route *middleware.MatchedRou
 
 	o.HTTPRequest = r
 
-	qs := runtime.Values(r.URL.Query())
+	if runtime.HasBody(r) {
+		defer r.Body.Close()
+		var body models.DirPath
+		if err := route.Consumer.Consume(r.Body, &body); err != nil {
+			if err == io.EOF {
+				res = append(res, errors.Required("dir", "body", ""))
+			} else {
+				res = append(res, errors.NewParseError("dir", "body", "", err))
+			}
+		} else {
+			// validate body object
+			if err := body.Validate(route.Formats); err != nil {
+				res = append(res, err)
+			}
 
-	qPath, qhkPath, _ := qs.GetOK("path")
-	if err := o.bindPath(qPath, qhkPath, route.Formats); err != nil {
-		res = append(res, err)
+			ctx := validate.WithOperationRequest(r.Context())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
+			if len(res) == 0 {
+				o.Dir = &body
+			}
+		}
+	} else {
+		res = append(res, errors.Required("dir", "body", ""))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-// bindPath binds and validates parameter Path from query.
-func (o *GetDirParams) bindPath(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	if !hasKey {
-		return errors.Required("path", "query", rawData)
-	}
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: true
-	// AllowEmptyValue: false
-
-	if err := validate.RequiredString("path", "query", raw); err != nil {
-		return err
-	}
-	o.Path = raw
-
 	return nil
 }

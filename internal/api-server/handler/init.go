@@ -188,7 +188,7 @@ func ListDir(ctx context.Context) func(params operations.GetDirParams, principal
 			"-G",
 			"-g",
 			`--time-style=+%s`,
-			params.Path,
+			*params.Dir.Path,
 		)
 
 		if err != nil {
@@ -212,9 +212,10 @@ func ListDir(ctx context.Context) func(params operations.GetDirParams, principal
 			done <- fmt.Errorf("%s", lastErr)
 		}()
 
-		// process stdout line by line
-		var entries []*models.DirEntry
+		// an empty slice for entries
+		entries := []*models.DirEntry{}
 
+		// process output line by line
 		for lout := range cout {
 
 			fields := strings.Fields(lout)
@@ -257,15 +258,13 @@ func ListDir(ctx context.Context) func(params operations.GetDirParams, principal
 		// wait until the command is finished
 		lastErr := <-done
 		err = cmd.Wait()
+
 		if err != nil {
-			log.Errorf("%s", err)
-			return operations.NewGetDirInternalServerError().WithPayload(
-				&models.ResponseBody500{
-					ErrorMessage: fmt.Sprintf("%s: %s", err.Error(), lastErr),
-					ExitCode:     FileSystemError,
-				},
-			)
+			// only log commandline execution error on server.
+			// always return 200 OK to the API client.
+			log.Errorf("%s: %s\n", err.Error(), lastErr)
 		}
+
 		return operations.NewGetDirOK().WithPayload(
 			&models.ResponseDirEntries{
 				Entries: entries,

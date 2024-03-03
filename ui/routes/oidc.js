@@ -7,11 +7,12 @@ var Issuer = require('openid-client').Issuer;
 
 // setup passport-openidconnect
 var passport = require('passport');
+var refresh = require('passport-oauth2-refresh');
 var OidcStrategy = require('passport-openidconnect').Strategy;
 
 var authServer = process.env.AUTH_SERVER;
 
-passport.use('oidc', new OidcStrategy({
+var oidcStrategy = new OidcStrategy({
     issuer: authServer,
     authorizationURL: authServer + '/connect/authorize',
     tokenURL: authServer + '/connect/token',
@@ -19,12 +20,16 @@ passport.use('oidc', new OidcStrategy({
     clientID: process.env.AUTH_CLIENT_ID,
     clientSecret: process.env.AUTH_CLIENT_SECRET,
     callbackURL: '/oidc/callback',
-    skipUserProfile: true,  // we are going to get user profile ourselves.
+    skipUserProfile: false,  // we are going to get user profile ourselves.
     proxy: true,
     scope: ["openid", "profile", "urn:dccn:identity:uid", "urn:dccn:pdb:core-api:query"],
-}, (_issuer, _profile, _context, idToken, accessToken, _refreshToken, verified) => {
+    //scope: ["openid", "profile", "offline_access", "urn:dccn:identity:uid", "urn:dccn:pdb:core-api:query"],
+}, (_issuer, _profile, _context, idToken, accessToken, refreshToken, verified) => {
 
-    // extract idToken's payload (for the expieration time)
+
+    console.log("_profile:", _profile);
+
+    // extract idToken's payload (for the expiration time)
     const payload = Buffer.from(idToken.split('.')[1], 'base64').toString();
     const claims = JSON.parse(payload);
 
@@ -33,11 +38,15 @@ passport.use('oidc', new OidcStrategy({
         new issuer.Client({
             client_id: process.env.AUTH_CLIENT_ID,
         }).userinfo(accessToken).then(profile => {
+
+            console.log("refresh token:", refreshToken);
+
             // only user with DCCN account is authorized??
             if ( ! profile['urn:dccn:uid'] ) throw new Error("missing DCCN account: " + _profile.id);
             return verified(null, {
                 id_token: idToken,
                 token: accessToken,
+                refresh_token: refreshToken,
                 username: profile['urn:dccn:uid'],
                 displayName: profile.name,
                 validUntil: claims.exp
@@ -47,7 +56,10 @@ passport.use('oidc', new OidcStrategy({
             return verified(null, false);
         });
     });
-}));
+})
+
+passport.use('oidc', oidcStrategy);
+refresh.use(oidcStrategy)
 
 // serialize functions are needed to store user object (returned from the `verified` callback) in session.
 passport.serializeUser(function(user, cb) {
@@ -83,7 +95,7 @@ router.get('/callback', passport.authenticate('oidc', {
 // endpoint to trigger logout workflow
 // TODO: should better use DELETE or POST method? (CORS issue)
 router.get('/logout',
-    auth.isAuthenticated,
+    //auth.isAuthenticated,
     (req, res) => {
         const id_token_hint = req.user.id_token;
         req.logout(err => {

@@ -14,6 +14,8 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/client/models"
 )
 
 // NewGetDirParams creates a new GetDirParams object,
@@ -61,11 +63,11 @@ GetDirParams contains all the parameters to send to the API endpoint
 */
 type GetDirParams struct {
 
-	/* Path.
+	/* Dir.
 
-	   path
+	   the directory
 	*/
-	Path string
+	Dir *models.DirPath
 
 	timeout    time.Duration
 	Context    context.Context
@@ -120,15 +122,15 @@ func (o *GetDirParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithPath adds the path to the get dir params
-func (o *GetDirParams) WithPath(path string) *GetDirParams {
-	o.SetPath(path)
+// WithDir adds the dir to the get dir params
+func (o *GetDirParams) WithDir(dir *models.DirPath) *GetDirParams {
+	o.SetDir(dir)
 	return o
 }
 
-// SetPath adds the path to the get dir params
-func (o *GetDirParams) SetPath(path string) {
-	o.Path = path
+// SetDir adds the dir to the get dir params
+func (o *GetDirParams) SetDir(dir *models.DirPath) {
+	o.Dir = dir
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -138,13 +140,8 @@ func (o *GetDirParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regist
 		return err
 	}
 	var res []error
-
-	// query param path
-	qrPath := o.Path
-	qPath := qrPath
-	if qPath != "" {
-
-		if err := r.SetQueryParam("path", qPath); err != nil {
+	if o.Dir != nil {
+		if err := r.SetBodyParam(o.Dir); err != nil {
 			return err
 		}
 	}
