@@ -199,7 +199,7 @@ function showFileSystemTree(loc, root) {
                 tie_selection: false,
                 three_state: false,
                 whole_node: false,
-                cascade: 'undetermined',
+                cascade: 'undetermined'
             },
             sort: function(a, b) {
                 var na = this.get_node(a);

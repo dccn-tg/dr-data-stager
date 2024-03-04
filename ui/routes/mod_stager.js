@@ -78,12 +78,18 @@ router.get('/dir', auth.isAuthenticated, function(request, response) {
                             });
                             break;
                         case 'symlink':
+
+                            var names = f.name.split(' -> ');
+
                             files.push({
-                                id: path.join(dir, f.name),
+                                id: path.join(dir, names[0]),
                                 parent: isRoot === 'true' ? '#':dir,
-                                text: f.name,
+                                text: names[0],
                                 icon: 'fa fa-file-o',
-                                li_attr: {'title':'symbolic link'},
+                                li_attr: {'title': names.length === 2 ? 'symlink to ' + names[1] : 'symlink'},
+                                state: {
+                                    disabled: true
+                                },
                                 children: false
                             });
                             break;
