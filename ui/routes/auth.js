@@ -9,34 +9,47 @@ var refresh = require('passport-oauth2-refresh');
  */
 const _isAuthenticated = function(req, res, next) {
 
-    console.log("user:", JSON.stringify(req.user));
-
     // no user in request context, must run login
     if (!req.user) return next(createError(401, new Error("Unauthorized")));
 
-    if (req.user && req.user.validUntil > (Date.now()/1000)) {
+    if (req.user && isTokenValid(req.user.token)) {
         next();
     } else {
-
-        console.log("valid unti:", req.user.validUntil);
-
+        // try to refresh the access token
         refresh.requestNewAccessToken(
             'oidc',
-            req.user.refreshToken,
+            req.user.refresh_token,
             (err, accessToken, refreshToken) => {
                 if (err) {
-                    console.error("refresh error:", err);
+                    console.error("cannot refresh token:", err);
                     return res.status(401).send({
                         message: 'unauthorized'
                     });
                 }
 
                 // update user's access token and refresh token stored in request context
-                req.user.accessToken = accessToken;
-                req.user.refreshToken = refreshToken;
+                req.session.passport.user.token = accessToken;
+                req.session.passport.user.refresh_token = refreshToken;
+
+                req.user.token = accessToken;
+                req.user.refresh_token = refreshToken;
+
                 next();
             }
         );
+    }
+}
+
+// isTokenValid checks if the claims.exp in the jwt token has a valid lifetime
+// longer than 30 seconds.
+const isTokenValid = function(token) {
+    try {
+        // extract access token's expieration time
+        const payload = Buffer.from(token.split('.')[1], 'base64').toString();
+        const claims = JSON.parse(payload);
+        return claims.exp > (Date.now()/1000) + 30;
+    } catch(e) {
+        return false;
     }
 }
 
