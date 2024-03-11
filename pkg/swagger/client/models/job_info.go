@@ -14,10 +14,10 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// ResponseBodyJobInfo JSON object containing scheduled job information.
+// JobInfo JSON object containing scheduled job information.
 //
-// swagger:model responseBodyJobInfo
-type ResponseBodyJobInfo struct {
+// swagger:model jobInfo
+type JobInfo struct {
 
 	// data
 	// Required: true
@@ -32,8 +32,8 @@ type ResponseBodyJobInfo struct {
 	Status *JobStatus `json:"status"`
 }
 
-// Validate validates this response body job info
-func (m *ResponseBodyJobInfo) Validate(formats strfmt.Registry) error {
+// Validate validates this job info
+func (m *JobInfo) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateData(formats); err != nil {
@@ -54,7 +54,7 @@ func (m *ResponseBodyJobInfo) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ResponseBodyJobInfo) validateData(formats strfmt.Registry) error {
+func (m *JobInfo) validateData(formats strfmt.Registry) error {
 
 	if err := validate.Required("data", "body", m.Data); err != nil {
 		return err
@@ -74,7 +74,7 @@ func (m *ResponseBodyJobInfo) validateData(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ResponseBodyJobInfo) validateID(formats strfmt.Registry) error {
+func (m *JobInfo) validateID(formats strfmt.Registry) error {
 
 	if err := validate.Required("id", "body", m.ID); err != nil {
 		return err
@@ -98,7 +98,7 @@ func (m *ResponseBodyJobInfo) validateID(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ResponseBodyJobInfo) validateStatus(formats strfmt.Registry) error {
+func (m *JobInfo) validateStatus(formats strfmt.Registry) error {
 
 	if err := validate.Required("status", "body", m.Status); err != nil {
 		return err
@@ -118,8 +118,8 @@ func (m *ResponseBodyJobInfo) validateStatus(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validate this response body job info based on the context it is used
-func (m *ResponseBodyJobInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this job info based on the context it is used
+func (m *JobInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateData(ctx, formats); err != nil {
@@ -140,7 +140,7 @@ func (m *ResponseBodyJobInfo) ContextValidate(ctx context.Context, formats strfm
 	return nil
 }
 
-func (m *ResponseBodyJobInfo) contextValidateData(ctx context.Context, formats strfmt.Registry) error {
+func (m *JobInfo) contextValidateData(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Data != nil {
 
@@ -157,7 +157,7 @@ func (m *ResponseBodyJobInfo) contextValidateData(ctx context.Context, formats s
 	return nil
 }
 
-func (m *ResponseBodyJobInfo) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
+func (m *JobInfo) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.ID != nil {
 
@@ -174,7 +174,7 @@ func (m *ResponseBodyJobInfo) contextValidateID(ctx context.Context, formats str
 	return nil
 }
 
-func (m *ResponseBodyJobInfo) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
+func (m *JobInfo) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Status != nil {
 
@@ -192,7 +192,7 @@ func (m *ResponseBodyJobInfo) contextValidateStatus(ctx context.Context, formats
 }
 
 // MarshalBinary interface implementation
-func (m *ResponseBodyJobInfo) MarshalBinary() ([]byte, error) {
+func (m *JobInfo) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -200,8 +200,8 @@ func (m *ResponseBodyJobInfo) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ResponseBodyJobInfo) UnmarshalBinary(b []byte) error {
-	var res ResponseBodyJobInfo
+func (m *JobInfo) UnmarshalBinary(b []byte) error {
+	var res JobInfo
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

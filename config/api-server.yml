@@ -1,6 +1,6 @@
 auth:
   demo: demo123
-  admin: admin 
+  admin: admin
 oauth2:
   jwksEndpoint: https://oauth/.well-known/openid-configuration/jwks
   userInfoEndpoint: https://oauth/connection/userinfo

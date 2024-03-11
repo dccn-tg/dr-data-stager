@@ -417,7 +417,7 @@ function updateJobHistoryTable(table) {
 function submitJobs(jobs) {
     $("#job_confirmation").modal( "hide" );
     $.post('/stager/jobs', {'jobs': JSON.stringify(jobs)}, function(data) {
-        showAppInfo('IDs of submitted jobs: ' + data.map(function(j) { return j.id; }).join(', '));
+        showAppInfo('Number of submitted jobs: ' + data.length);
     }).fail( function() {
         showAppError('Job submission failed');
     });

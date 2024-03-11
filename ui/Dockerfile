@@ -19,6 +19,7 @@ COPY routes ./routes
 COPY views ./views
 COPY public ./public
 RUN ( mkdir config )
+RUN ( mkdir ssl )
 COPY config/default.json ./config
 
 # COPY start_stager-ui.sh start_stager-ui.sh

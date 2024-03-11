@@ -26,7 +26,7 @@ type GetJobIDOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.ResponseBodyJobInfo `json:"body,omitempty"`
+	Payload *models.JobInfo `json:"body,omitempty"`
 }
 
 // NewGetJobIDOK creates GetJobIDOK with default headers values
@@ -36,13 +36,13 @@ func NewGetJobIDOK() *GetJobIDOK {
 }
 
 // WithPayload adds the payload to the get job Id o k response
-func (o *GetJobIDOK) WithPayload(payload *models.ResponseBodyJobInfo) *GetJobIDOK {
+func (o *GetJobIDOK) WithPayload(payload *models.JobInfo) *GetJobIDOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get job Id o k response
-func (o *GetJobIDOK) SetPayload(payload *models.ResponseBodyJobInfo) {
+func (o *GetJobIDOK) SetPayload(payload *models.JobInfo) {
 	o.Payload = payload
 }
 

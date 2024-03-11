@@ -26,7 +26,7 @@ type DeleteJobIDOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.ResponseBodyJobInfo `json:"body,omitempty"`
+	Payload *models.JobInfo `json:"body,omitempty"`
 }
 
 // NewDeleteJobIDOK creates DeleteJobIDOK with default headers values
@@ -36,13 +36,13 @@ func NewDeleteJobIDOK() *DeleteJobIDOK {
 }
 
 // WithPayload adds the payload to the delete job Id o k response
-func (o *DeleteJobIDOK) WithPayload(payload *models.ResponseBodyJobInfo) *DeleteJobIDOK {
+func (o *DeleteJobIDOK) WithPayload(payload *models.JobInfo) *DeleteJobIDOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the delete job Id o k response
-func (o *DeleteJobIDOK) SetPayload(payload *models.ResponseBodyJobInfo) {
+func (o *DeleteJobIDOK) SetPayload(payload *models.JobInfo) {
 	o.Payload = payload
 }
 

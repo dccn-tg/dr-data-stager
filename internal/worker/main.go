@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -88,11 +89,29 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
+	mux.Use(notificationMiddleware)
 	mux.Handle(tasks.TypeStager, tasks.NewStager(cfg))
-	mux.Handle(tasks.TypeEmailer, tasks.NewEmailer(cfg))
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {
 		log.Fatalf("could not run server: %v", err)
 	}
+}
+
+// notificationMiddleware performs a postprocess for notifying enduser and/or the
+// service manager/adminstrator concering the result of the processed stager task.
+func notificationMiddleware(next asynq.Handler) asynq.Handler {
+	return asynq.HandlerFunc(func(ctx context.Context, t *asynq.Task) error {
+		err := next.ProcessTask(ctx, t)
+		if err == nil {
+			log.Debugf("notifying job owner on complete job")
+		} else {
+			retried, _ := asynq.GetRetryCount(ctx)
+			maxRetry, _ := asynq.GetMaxRetry(ctx)
+			if retried >= maxRetry {
+				log.Debugf("reporting job failure")
+			}
+		}
+		return err
+	})
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"os/user"
@@ -18,6 +19,8 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/hibiken/asynq"
+
+	suuid "github.com/lithammer/shortuuid/v4"
 
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
@@ -67,6 +70,17 @@ func GetPing(cfg config.Configuration) func(params operations.GetPingParams) mid
 	}
 }
 
+// GetJobs retrieves all jobs owned by the `principal`.
+func GetJobs(ctx context.Context, inspector *asynq.Inspector) func(params operations.GetJobsParams, principal *models.Principal) middleware.Responder {
+	return func(params operations.GetJobsParams, principal *models.Principal) middleware.Responder {
+		return operations.NewGetJobsOK().WithPayload(
+			&models.ResponseBodyJobs{
+				Jobs: getTasksOwnedBy(inspector, string(*principal)),
+			},
+		)
+	}
+}
+
 // GetJob retrieves job information.
 func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operations.GetJobIDParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.GetJobIDParams, principal *models.Principal) middleware.Responder {
@@ -74,13 +88,9 @@ func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operati
 
 		// retrieve task from the queue
 		taskInfo, err := findTask(inspector, id)
-		if err != nil {
-			log.Errorf("[%s] cannot get task: %s", id, err)
-			return operations.NewGetJobIDInternalServerError().WithPayload(
-				&models.ResponseBody500{
-					ErrorMessage: err.Error(),
-					ExitCode:     JobQueueError,
-				},
+		if errors.Is(err, asynq.ErrTaskNotFound) {
+			return operations.NewGetJobIDNotFound().WithPayload(
+				fmt.Sprintf("job %s doesn't exist", id),
 			)
 		}
 
@@ -96,10 +106,10 @@ func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operati
 		}
 
 		// check if job owner (stager user) is the same as principal.
-		// Return 404 not found error if no match.
+		// Return 404 not found if it doesn't match
 		if *res.Data.StagerUser != *(*string)(principal) {
 			return operations.NewGetJobIDNotFound().WithPayload(
-				fmt.Sprintf("job %s doesn't exist or not owned by the authenticated user: %s", id, *principal),
+				fmt.Sprintf("job %s not owned by the authenticated user: %s", id, *principal),
 			)
 		}
 
@@ -116,13 +126,9 @@ func DeleteJob(ctx context.Context, inspector *asynq.Inspector) func(params oper
 
 		// retrieve task from the queue
 		taskInfo, err := findTask(inspector, id)
-		if err != nil {
-			log.Errorf("[%s] error retrieve task info: %s", err)
-			return operations.NewDeleteJobIDInternalServerError().WithPayload(
-				&models.ResponseBody500{
-					ErrorMessage: err.Error(),
-					ExitCode:     JobDataError,
-				},
+		if errors.Is(err, asynq.ErrTaskNotFound) {
+			return operations.NewDeleteJobIDNotFound().WithPayload(
+				fmt.Sprintf("job %s doesn't exist", id),
 			)
 		}
 
@@ -273,6 +279,59 @@ func ListDir(ctx context.Context) func(params operations.GetDirParams, principal
 	}
 }
 
+// NewJobs registers the incoming transfer request as multiple stager jobs in the queue.
+func NewJobs(ctx context.Context, client *asynq.Client) func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
+	return func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
+
+		submitted := []*models.JobInfo{}
+
+		for _, jdata := range params.Data.Jobs {
+			if *jdata.StagerUser != *(*string)(principal) {
+				log.Errorf("job not owned by the authenticated user: %s\n", *principal)
+				continue
+			}
+
+			taskInfo, err := enqueueStagerTask(ctx, client, jdata)
+			if err != nil {
+				log.Errorf("cannot enqueue task: %s", err)
+				continue
+			}
+
+			log.Infof("[%s] task submitted", taskInfo.ID)
+
+			jinfo, err := composeResponseBodyJobInfo(taskInfo)
+			if err != nil {
+				log.Errorf("[%s] fail to wrap up job info: %s\n", err)
+				continue
+			}
+			submitted = append(submitted, jinfo)
+		}
+
+		if len(submitted) != len(params.Data.Jobs) {
+			if len(submitted) == 0 {
+				return operations.NewPostJobsInternalServerError().WithPayload(
+					&models.ResponseBody500{
+						ErrorMessage: "fail to create stager jobs",
+						ExitCode:     JobCreateError,
+					},
+				)
+			}
+
+			return operations.NewPostJobsMultiStatus().WithPayload(
+				&models.ResponseBodyJobs{
+					Jobs: submitted,
+				},
+			)
+		}
+
+		return operations.NewPostJobsOK().WithPayload(
+			&models.ResponseBodyJobs{
+				Jobs: submitted,
+			},
+		)
+	}
+}
+
 // NewJob registers the incoming transfer request as a new stager job in the queue.
 func NewJob(ctx context.Context, client *asynq.Client) func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
@@ -287,46 +346,7 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 			)
 		}
 
-		// set default job timeout (24 hours)
-		timeout := params.Data.Timeout
-		if timeout <= 0 {
-			timeout = 86400
-		}
-
-		// set default job timeout no progress (1 hour)
-		timeoutNp := params.Data.TimeoutNoprogress
-		if timeoutNp <= 0 {
-			timeoutNp = 3600
-		}
-
-		t, err := tasks.NewStagerTask(
-			*params.Data.Title,
-			*params.Data.DrUser,
-			params.Data.DrPass,
-			*params.Data.DstURL,
-			*params.Data.SrcURL,
-			*params.Data.StagerUser,
-			timeout,
-			timeoutNp,
-		)
-
-		if err != nil {
-			return operations.NewPostJobInternalServerError().WithPayload(
-				&models.ResponseBody500{
-					ErrorMessage: err.Error(),
-					ExitCode:     JobCreateError,
-				},
-			)
-		}
-
-		taskInfo, err := client.EnqueueContext(
-			ctx,
-			t,
-			asynq.Retention(2*24*time.Hour),
-			asynq.MaxRetry(4),
-			asynq.Timeout(time.Duration(timeout)*time.Second), // this set the hard timeout
-		)
-
+		taskInfo, err := enqueueStagerTask(ctx, client, params.Data)
 		if err != nil {
 			log.Errorf("cannot enqueue task: %s", err)
 			return operations.NewPostJobInternalServerError().WithPayload(
@@ -411,7 +431,7 @@ func runCmdAs(username string, cmd string, args ...string) (chan string, chan st
 	return cout, cerr, c, nil
 }
 
-// findTask looks into different queues to retrieve the TaskInfo, or return an error if not found.
+// findTask looks into different queues to retrieve the TaskInfo, or return `asynq.ErrTaskNotFound` if not found.
 func findTask(inspector *asynq.Inspector, id string) (*asynq.TaskInfo, error) {
 
 	for q := range tasks.StagerQueues {
@@ -423,7 +443,125 @@ func findTask(inspector *asynq.Inspector, id string) (*asynq.TaskInfo, error) {
 	return nil, asynq.ErrTaskNotFound
 }
 
-func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.ResponseBodyJobInfo, error) {
+// getTasksInStateOwnedBy retrieves all tasks "belong" to the `username` by list all
+// tasks with `stagerUser` prefix on the task ID.
+func getTasksInStateOwnedBy(inspector *asynq.Inspector, state asynq.TaskState, username string) []*models.JobInfo {
+
+	ctasks := make(chan *asynq.TaskInfo)
+
+	// generic fetch function loops over queues and pages
+	fetch := func(fetcher func(q string, opts ...asynq.ListOption) ([]*asynq.TaskInfo, error)) {
+
+		defer close(ctasks)
+
+		tidPrefix := fmt.Sprintf("%s.", username)
+		for queue := range tasks.StagerQueues {
+			pn := 0
+			for {
+				pn++
+				qtasks, err := fetcher(queue, asynq.PageSize(3), asynq.Page(pn))
+				if err != nil || len(qtasks) == 0 {
+					break
+				}
+				for _, t := range qtasks {
+					if !strings.HasPrefix(t.ID, tidPrefix) {
+						continue
+					}
+					ctasks <- t
+				}
+			}
+		}
+	}
+
+	switch state {
+	case asynq.TaskStateScheduled:
+		go fetch(inspector.ListScheduledTasks)
+	case asynq.TaskStatePending:
+		go fetch(inspector.ListPendingTasks)
+	case asynq.TaskStateActive:
+		go fetch(inspector.ListActiveTasks)
+	case asynq.TaskStateRetry:
+		go fetch(inspector.ListRetryTasks)
+	case asynq.TaskStateCompleted:
+		go fetch(inspector.ListCompletedTasks)
+	case asynq.TaskStateArchived:
+		go fetch(inspector.ListArchivedTasks)
+	}
+
+	tasks := []*models.JobInfo{}
+
+	for t := range ctasks {
+		info, err := composeResponseBodyJobInfo(t)
+		if err != nil {
+			log.Errorf("%s\n", err)
+			continue
+		}
+		tasks = append(tasks, info)
+	}
+
+	return tasks
+}
+
+// getTasksOwnedBy retrieves all tasks "belong" to the `username` by list all
+// tasks with `stagerUser` prefix on the task ID.
+func getTasksOwnedBy(inspector *asynq.Inspector, username string) []*models.JobInfo {
+
+	tasks := []*models.JobInfo{}
+
+	for _, s := range []asynq.TaskState{
+		asynq.TaskStatePending,
+		asynq.TaskStateActive,
+		asynq.TaskStateRetry,
+		asynq.TaskStateCompleted,
+		asynq.TaskStateArchived,
+	} {
+		tasks = append(tasks, getTasksInStateOwnedBy(inspector, s, username)...)
+	}
+
+	return tasks
+}
+
+// enqueueStagerTask creates a new stager task in the asynq queue.
+func enqueueStagerTask(ctx context.Context, client *asynq.Client, job *models.JobData) (*asynq.TaskInfo, error) {
+	// set default job timeout (24 hours)
+	timeout := job.Timeout
+	if timeout <= 0 {
+		timeout = 86400
+	}
+
+	// set default job timeout no progress (1 hour)
+	timeoutNp := job.TimeoutNoprogress
+	if timeoutNp <= 0 {
+		timeoutNp = 3600
+	}
+
+	t, err := tasks.NewStagerTask(
+		*job.Title,
+		*job.DrUser,
+		job.DrPass,
+		*job.DstURL,
+		*job.SrcURL,
+		*job.StagerUser,
+		timeout,
+		timeoutNp,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return client.EnqueueContext(
+		ctx,
+		t,
+		asynq.TaskID(fmt.Sprintf("%s.%s", *job.StagerUser, suuid.New())),
+		asynq.Retention(2*24*time.Hour),
+		asynq.MaxRetry(4),
+		asynq.Timeout(time.Duration(timeout)*time.Second), // this set the hard timeout
+	)
+}
+
+// composeResponseBodyJobInfo wraps the data structure of `asynq.TaskInfo` into `models.JobInfo`.
+func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.JobInfo, error) {
 
 	var j tasks.StagerPayload
 	if err := json.Unmarshal(task.Payload, &j); err != nil {
@@ -444,7 +582,7 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.ResponseBodyJobIn
 	// job identifier
 	jid := models.JobID(task.ID)
 
-	return &models.ResponseBodyJobInfo{
+	return &models.JobInfo{
 		ID: &jid,
 		Data: &models.JobData{
 			Title:             &j.Title,

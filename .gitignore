@@ -26,4 +26,4 @@ log/
 
 **/*.dev.*
 
-**/icat-*.pem
+**/*.pem

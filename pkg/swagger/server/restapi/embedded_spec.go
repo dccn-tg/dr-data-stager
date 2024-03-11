@@ -31,7 +31,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:identity:uid"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -77,7 +77,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -106,7 +106,7 @@ func init() {
           "200": {
             "description": "success",
             "schema": {
-              "$ref": "#/definitions/responseBodyJobInfo"
+              "$ref": "#/definitions/jobInfo"
             }
           },
           "500": {
@@ -123,7 +123,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -150,7 +150,7 @@ func init() {
           "200": {
             "description": "success",
             "schema": {
-              "$ref": "#/definitions/responseBodyJobInfo"
+              "$ref": "#/definitions/jobInfo"
             }
           },
           "400": {
@@ -180,7 +180,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -207,7 +207,7 @@ func init() {
           "200": {
             "description": "success",
             "schema": {
-              "$ref": "#/definitions/responseBodyJobInfo"
+              "$ref": "#/definitions/jobInfo"
             }
           },
           "400": {
@@ -234,12 +234,97 @@ func init() {
         }
       }
     },
+    "/jobs": {
+      "get": {
+        "security": [
+          {
+            "oauth2": [
+              "urn:dccn:data-stager-api:*"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "get all jobs of a user",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobs"
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "oauth2": [
+              "urn:dccn:data-stager-api:*"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "create multiple new stager jobs",
+        "parameters": [
+          {
+            "description": "stager job data",
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/requestBodyJobs"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobs"
+            }
+          },
+          "207": {
+            "description": "multi-status",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobs"
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/jobs/{status}": {
       "get": {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -409,6 +494,25 @@ func init() {
       "description": "identifier for scheduled background tasks.",
       "type": "string"
     },
+    "jobInfo": {
+      "description": "JSON object containing scheduled job information.",
+      "required": [
+        "id",
+        "data",
+        "status"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/jobData"
+        },
+        "id": {
+          "$ref": "#/definitions/jobID"
+        },
+        "status": {
+          "$ref": "#/definitions/jobStatus"
+        }
+      }
+    },
     "jobProgress": {
       "description": "job progress information",
       "required": [
@@ -464,6 +568,17 @@ func init() {
       "description": "authenticated client identifier",
       "type": "string"
     },
+    "requestBodyJobs": {
+      "description": "JSON object containing a list of job data.",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/jobData"
+          }
+        }
+      }
+    },
     "responseBody400": {
       "description": "JSON object containing error message concerning bad client request.",
       "properties": {
@@ -486,32 +601,13 @@ func init() {
         }
       }
     },
-    "responseBodyJobInfo": {
-      "description": "JSON object containing scheduled job information.",
-      "required": [
-        "id",
-        "data",
-        "status"
-      ],
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/jobData"
-        },
-        "id": {
-          "$ref": "#/definitions/jobID"
-        },
-        "status": {
-          "$ref": "#/definitions/jobStatus"
-        }
-      }
-    },
     "responseBodyJobs": {
       "description": "JSON object containing a list of job information.",
       "properties": {
         "jobs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/responseBodyJobInfo"
+            "$ref": "#/definitions/jobInfo"
           }
         }
       }
@@ -537,8 +633,7 @@ func init() {
       "flow": "application",
       "tokenUrl": "https://login.dccn.nl/connect/token",
       "scopes": {
-        "urn:dccn:data-stager:*": "general access scope for data-stager server APIs",
-        "urn:dccn:identity:uid": "scope for accessing user id"
+        "urn:dccn:data-stager-api:*": "general access scope for data-stager API server"
       }
     }
   }
@@ -557,7 +652,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:identity:uid"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -603,7 +698,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -632,7 +727,7 @@ func init() {
           "200": {
             "description": "success",
             "schema": {
-              "$ref": "#/definitions/responseBodyJobInfo"
+              "$ref": "#/definitions/jobInfo"
             }
           },
           "500": {
@@ -649,7 +744,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -676,7 +771,7 @@ func init() {
           "200": {
             "description": "success",
             "schema": {
-              "$ref": "#/definitions/responseBodyJobInfo"
+              "$ref": "#/definitions/jobInfo"
             }
           },
           "400": {
@@ -706,7 +801,7 @@ func init() {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -733,7 +828,7 @@ func init() {
           "200": {
             "description": "success",
             "schema": {
-              "$ref": "#/definitions/responseBodyJobInfo"
+              "$ref": "#/definitions/jobInfo"
             }
           },
           "400": {
@@ -760,12 +855,97 @@ func init() {
         }
       }
     },
+    "/jobs": {
+      "get": {
+        "security": [
+          {
+            "oauth2": [
+              "urn:dccn:data-stager-api:*"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "get all jobs of a user",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobs"
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "oauth2": [
+              "urn:dccn:data-stager-api:*"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "create multiple new stager jobs",
+        "parameters": [
+          {
+            "description": "stager job data",
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/requestBodyJobs"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobs"
+            }
+          },
+          "207": {
+            "description": "multi-status",
+            "schema": {
+              "$ref": "#/definitions/responseBodyJobs"
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/jobs/{status}": {
       "get": {
         "security": [
           {
             "oauth2": [
-              "urn:dccn:data-stager:*"
+              "urn:dccn:data-stager-api:*"
             ]
           },
           {
@@ -935,6 +1115,25 @@ func init() {
       "description": "identifier for scheduled background tasks.",
       "type": "string"
     },
+    "jobInfo": {
+      "description": "JSON object containing scheduled job information.",
+      "required": [
+        "id",
+        "data",
+        "status"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/jobData"
+        },
+        "id": {
+          "$ref": "#/definitions/jobID"
+        },
+        "status": {
+          "$ref": "#/definitions/jobStatus"
+        }
+      }
+    },
     "jobProgress": {
       "description": "job progress information",
       "required": [
@@ -990,6 +1189,17 @@ func init() {
       "description": "authenticated client identifier",
       "type": "string"
     },
+    "requestBodyJobs": {
+      "description": "JSON object containing a list of job data.",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/jobData"
+          }
+        }
+      }
+    },
     "responseBody400": {
       "description": "JSON object containing error message concerning bad client request.",
       "properties": {
@@ -1012,32 +1222,13 @@ func init() {
         }
       }
     },
-    "responseBodyJobInfo": {
-      "description": "JSON object containing scheduled job information.",
-      "required": [
-        "id",
-        "data",
-        "status"
-      ],
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/jobData"
-        },
-        "id": {
-          "$ref": "#/definitions/jobID"
-        },
-        "status": {
-          "$ref": "#/definitions/jobStatus"
-        }
-      }
-    },
     "responseBodyJobs": {
       "description": "JSON object containing a list of job information.",
       "properties": {
         "jobs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/responseBodyJobInfo"
+            "$ref": "#/definitions/jobInfo"
           }
         }
       }
@@ -1063,8 +1254,7 @@ func init() {
       "flow": "application",
       "tokenUrl": "https://login.dccn.nl/connect/token",
       "scopes": {
-        "urn:dccn:data-stager:*": "general access scope for data-stager server APIs",
-        "urn:dccn:identity:uid": "scope for accessing user id"
+        "urn:dccn:data-stager-api:*": "general access scope for data-stager API server"
       }
     }
   }

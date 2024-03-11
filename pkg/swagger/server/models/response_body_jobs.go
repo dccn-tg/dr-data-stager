@@ -20,7 +20,7 @@ import (
 type ResponseBodyJobs struct {
 
 	// jobs
-	Jobs []*ResponseBodyJobInfo `json:"jobs"`
+	Jobs []*JobInfo `json:"jobs"`
 }
 
 // Validate validates this response body jobs

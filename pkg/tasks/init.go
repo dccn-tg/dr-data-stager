@@ -20,9 +20,7 @@ import (
 
 // A list of task types.
 const (
-	TypeStager  = "stager"
-	TypeEmailer = "email"
-	keyTaskID   = int8(0)
+	TypeStager = "stager"
 )
 
 // Queues for different task types, with their associated task priority
@@ -64,23 +62,7 @@ type StagerPayload struct {
 	TimeoutNoprogress int64 `json:"timeout_noprogress,omitempty"`
 }
 
-// EmailerPayload defines the data structure of the emailer payload.
-type EmailerPayload struct {
-	Recipients []string
-	Message    string
-}
-
-func NewEmailNotifyTask(Recipients []string, Message string) (*asynq.Task, error) {
-	payload, err := json.Marshal(EmailerPayload{
-		Recipients: Recipients,
-		Message:    Message,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return asynq.NewTask(TypeEmailer, payload), nil
-}
-
+// NewStagerTask wraps payload data into a `asynq.Task` ready for enqueuing.
 func NewStagerTask(Title, DrUser, DrPass, DstURL, SrcURL, StagerUser string, Timeout, TimeoutNoprogress int64) (*asynq.Task, error) {
 	payload, err := json.Marshal(StagerPayload{
 		Title:             Title,
@@ -95,35 +77,13 @@ func NewStagerTask(Title, DrUser, DrPass, DstURL, SrcURL, StagerUser string, Tim
 	if err != nil {
 		return nil, err
 	}
-	// task options can be passed to NewTask, which can be overridden at enqueue time.
+	// task options are default settings which can be overridden at enqueue time.
 	return asynq.NewTask(
 		TypeStager,
 		payload,
-		asynq.MaxRetry(5),
+		asynq.MaxRetry(2),
 		asynq.Timeout(time.Duration(Timeout)*time.Second),
 	), nil
-}
-
-// Emailer implements asynq.Handler interface.
-type Emailer struct {
-	config config.Configuration
-}
-
-func (emailer *Emailer) ProcessTask(ctx context.Context, t *asynq.Task) error {
-	var p EmailerPayload
-
-	if err := json.Unmarshal(t.Payload(), &p); err != nil {
-		return fmt.Errorf("cannot unmarshal emailer payload: %v: %w", err, asynq.SkipRetry)
-	}
-	log.Debugf("[%s] emailer payload data: %+v", t.ResultWriter().TaskID(), p)
-	return nil
-}
-
-func NewEmailer(config config.Configuration) *Emailer {
-	// load mail server configuration
-	return &Emailer{
-		config: config,
-	}
 }
 
 // Stager implements asynq.Handler interface.
@@ -139,21 +99,23 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 		}
 	}
 
+	tid, ok := asynq.GetTaskID(ctx)
+	if !ok {
+		return fmt.Errorf("cannot get task id from the task context")
+	}
+
 	var p StagerPayload
 
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
 		return fmt.Errorf("cannot unmarshal stager payload: %v: %w", err, asynq.SkipRetry)
 	}
-	log.Debugf("[%s] payload: %+v", t.ResultWriter().TaskID(), p)
+	log.Debugf("[%s] payload: %+v", tid, p)
 
 	timer := time.NewTimer(time.Duration(p.TimeoutNoprogress) * time.Second)
 
-	cout, cerr, cmd, err := runSyncAs(
-		context.WithValue(ctx, keyTaskID, t.ResultWriter().TaskID()),
-		p,
-	)
+	cout, cerr, cmd, err := runSyncAs(ctx, p)
 	if err != nil {
-		log.Errorf("[%s] %s", t.ResultWriter().TaskID(), err)
+		log.Errorf("[%s] %s", tid, err)
 		return err
 	}
 
@@ -172,7 +134,7 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 			rslt.Progress.Processed = progress.Success + progress.Failure
 			rslt.Progress.Failed = progress.Failure
 
-			log.Debugf("[%s] %d/%d processed", t.ResultWriter().TaskID(), rslt.Progress.Processed, rslt.Progress.Total)
+			log.Debugf("[%s] %d/%d processed", tid, rslt.Progress.Processed, rslt.Progress.Total)
 
 			updateRslt(rslt)
 
@@ -200,7 +162,7 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 
 			if e != nil {
 				err := fmt.Errorf("s-isync failed: %s - %s", e, lastErr)
-				log.Errorf("[%s] %s", t.ResultWriter().TaskID(), err)
+				log.Errorf("[%s] %s", tid, err)
 				return err
 			}
 			return nil
@@ -208,11 +170,11 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 		case <-timer.C:
 			// receive times up signal for `timeoutNoprogress`
 			err := fmt.Errorf("no progress more than %d seconds", p.TimeoutNoprogress)
-			log.Errorf("[%s] %s", t.ResultWriter().TaskID(), err)
+			log.Errorf("[%s] %s", tid, err)
 
 			// send kill to the cmd's process
 			if err := cmd.Process.Kill(); err != nil {
-				log.Errorf("[%s] fail to terminate s-isync: %s", t.ResultWriter().TaskID(), err)
+				log.Errorf("[%s] fail to terminate s-isync: %s", tid, err)
 			}
 
 			return err
@@ -220,11 +182,11 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 		case <-ctx.Done():
 			// receive abort signal from parent context
 			err := fmt.Errorf("aborted by context")
-			log.Debugf("[%s] %s", t.ResultWriter().TaskID(), err)
+			log.Debugf("[%s] %s", tid, err)
 
 			// send kill to the cmd's process
 			if err := cmd.Process.Kill(); err != nil {
-				log.Errorf("[%s] fail to terminate s-isync: %s", t.ResultWriter().TaskID(), err)
+				log.Errorf("[%s] fail to terminate s-isync: %s", tid, err)
 			}
 
 			return err
@@ -242,7 +204,10 @@ type progress struct {
 // runSyncAs runs `s-isync` as the `stagerUser` in a go routine.
 func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan string, *exec.Cmd, error) {
 
-	tid := ctx.Value(keyTaskID).(string)
+	tid, ok := asynq.GetTaskID(ctx)
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("invalid context: missing asynq task id")
+	}
 
 	u, err := user.Lookup(payload.StagerUser)
 	if err != nil {

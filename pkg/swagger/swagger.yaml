@@ -15,8 +15,7 @@ securityDefinitions:
     flow: application
     tokenUrl: 'https://login.dccn.nl/connect/token'
     scopes:
-      urn:dccn:data-stager:*: general access scope for data-stager server APIs
-      urn:dccn:identity:uid: scope for accessing user id
+      urn:dccn:data-stager-api:*: general access scope for data-stager API server
 
 # API paths
 paths:
@@ -39,11 +38,60 @@ paths:
           schema:
             $ref: '#/definitions/responseBody500'
 
+  /jobs:
+    post:
+      summary: create multiple new stager jobs
+      security:
+        - oauth2: [urn:dccn:data-stager-api:*]
+        - basicAuth: []
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          description: stager job data
+          name: data
+          schema:
+            $ref: '#/definitions/requestBodyJobs'
+          required: true
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/responseBodyJobs'
+        207:
+          description: multi-status
+          schema:
+            $ref: '#/definitions/responseBodyJobs'
+        500:
+          description: failure
+          schema:
+            $ref: '#/definitions/responseBody500'
+    get:
+      summary: get all jobs of a user
+      security:
+        - oauth2: [urn:dccn:data-stager-api:*]
+        - basicAuth: []
+      consumes:
+        - application/json
+      produces:
+        - application/json      
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/responseBodyJobs'
+        500:
+          description: failure
+          schema:
+            $ref: '#/definitions/responseBody500'
+
   /jobs/{status}:
     get:
       summary: get list of jobs at given status
       security:
-        - oauth2: [urn:dccn:data-stager:*]
+        - oauth2: [urn:dccn:data-stager-api:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -74,7 +122,7 @@ paths:
     post:
       summary: create a new stager job
       security:
-        - oauth2: [urn:dccn:data-stager:*]
+        - oauth2: [urn:dccn:data-stager-api:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -91,7 +139,7 @@ paths:
         200:
           description: success
           schema:
-            $ref: '#/definitions/responseBodyJobInfo'
+            $ref: '#/definitions/jobInfo'
         500:
           description: failure
           schema:
@@ -101,7 +149,7 @@ paths:
     get:
       summary: get stager job information
       security:
-        - oauth2: [urn:dccn:data-stager:*]
+        - oauth2: [urn:dccn:data-stager-api:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -117,7 +165,7 @@ paths:
         200:
           description: success
           schema:
-            $ref: '#/definitions/responseBodyJobInfo'
+            $ref: '#/definitions/jobInfo'
         400:
           description: bad request
           schema:
@@ -134,7 +182,7 @@ paths:
     delete:
       summary: cancel a stager job
       security:
-        - oauth2: [urn:dccn:data-stager:*]
+        - oauth2: [urn:dccn:data-stager-api:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -150,7 +198,7 @@ paths:
         200:
           description: success
           schema:
-            $ref: '#/definitions/responseBodyJobInfo'
+            $ref: '#/definitions/jobInfo'
         400:
           description: bad request
           schema:
@@ -169,7 +217,7 @@ paths:
     get:
       summary: get entities within a filesystem path
       security:
-        - oauth2: [urn:dccn:identity:uid]
+        - oauth2: [urn:dccn:data-stager-api:*]
         - basicAuth: []
       consumes:
         - application/json
@@ -195,6 +243,14 @@ paths:
 # object definitions
 definitions:
 
+  requestBodyJobs:
+    description: JSON object containing a list of job data.
+    properties:
+      jobs:
+        type: array
+        items:
+          $ref: '#/definitions/jobData'
+
   responseBody400:
     description: JSON object containing error message concerning bad client request.
     properties:
@@ -212,7 +268,7 @@ definitions:
         description: server-side error message.
         type: string
 
-  responseBodyJobInfo:
+  jobInfo:
     description: JSON object containing scheduled job information.
     properties:
       id:
@@ -267,7 +323,7 @@ definitions:
       jobs:
         type: array
         items:
-          $ref: '#/definitions/responseBodyJobInfo'
+          $ref: '#/definitions/jobInfo'
 
   jobData:
     description: job data

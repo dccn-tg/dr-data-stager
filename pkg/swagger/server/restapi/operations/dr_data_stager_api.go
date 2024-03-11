@@ -53,6 +53,9 @@ func NewDrDataStagerAPI(spec *loads.Document) *DrDataStagerAPI {
 		GetJobIDHandler: GetJobIDHandlerFunc(func(params GetJobIDParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation GetJobID has not yet been implemented")
 		}),
+		GetJobsHandler: GetJobsHandlerFunc(func(params GetJobsParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation GetJobs has not yet been implemented")
+		}),
 		GetJobsStatusHandler: GetJobsStatusHandlerFunc(func(params GetJobsStatusParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation GetJobsStatus has not yet been implemented")
 		}),
@@ -61,6 +64,9 @@ func NewDrDataStagerAPI(spec *loads.Document) *DrDataStagerAPI {
 		}),
 		PostJobHandler: PostJobHandlerFunc(func(params PostJobParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation PostJob has not yet been implemented")
+		}),
+		PostJobsHandler: PostJobsHandlerFunc(func(params PostJobsParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation PostJobs has not yet been implemented")
 		}),
 
 		// Applies when the Authorization header is set with the Basic scheme
@@ -125,12 +131,16 @@ type DrDataStagerAPI struct {
 	GetDirHandler GetDirHandler
 	// GetJobIDHandler sets the operation handler for the get job ID operation
 	GetJobIDHandler GetJobIDHandler
+	// GetJobsHandler sets the operation handler for the get jobs operation
+	GetJobsHandler GetJobsHandler
 	// GetJobsStatusHandler sets the operation handler for the get jobs status operation
 	GetJobsStatusHandler GetJobsStatusHandler
 	// GetPingHandler sets the operation handler for the get ping operation
 	GetPingHandler GetPingHandler
 	// PostJobHandler sets the operation handler for the post job operation
 	PostJobHandler PostJobHandler
+	// PostJobsHandler sets the operation handler for the post jobs operation
+	PostJobsHandler PostJobsHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -224,6 +234,9 @@ func (o *DrDataStagerAPI) Validate() error {
 	if o.GetJobIDHandler == nil {
 		unregistered = append(unregistered, "GetJobIDHandler")
 	}
+	if o.GetJobsHandler == nil {
+		unregistered = append(unregistered, "GetJobsHandler")
+	}
 	if o.GetJobsStatusHandler == nil {
 		unregistered = append(unregistered, "GetJobsStatusHandler")
 	}
@@ -232,6 +245,9 @@ func (o *DrDataStagerAPI) Validate() error {
 	}
 	if o.PostJobHandler == nil {
 		unregistered = append(unregistered, "PostJobHandler")
+	}
+	if o.PostJobsHandler == nil {
+		unregistered = append(unregistered, "PostJobsHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -351,6 +367,10 @@ func (o *DrDataStagerAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/jobs"] = NewGetJobs(o.context, o.GetJobsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/jobs/{status}"] = NewGetJobsStatus(o.context, o.GetJobsStatusHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -360,6 +380,10 @@ func (o *DrDataStagerAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/job"] = NewPostJob(o.context, o.PostJobHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/jobs"] = NewPostJobs(o.context, o.PostJobsHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

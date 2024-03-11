@@ -14,17 +14,17 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// ResponseBodyJobs JSON object containing a list of job information.
+// RequestBodyJobs JSON object containing a list of job data.
 //
-// swagger:model responseBodyJobs
-type ResponseBodyJobs struct {
+// swagger:model requestBodyJobs
+type RequestBodyJobs struct {
 
 	// jobs
-	Jobs []*JobInfo `json:"jobs"`
+	Jobs []*JobData `json:"jobs"`
 }
 
-// Validate validates this response body jobs
-func (m *ResponseBodyJobs) Validate(formats strfmt.Registry) error {
+// Validate validates this request body jobs
+func (m *RequestBodyJobs) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateJobs(formats); err != nil {
@@ -37,7 +37,7 @@ func (m *ResponseBodyJobs) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ResponseBodyJobs) validateJobs(formats strfmt.Registry) error {
+func (m *RequestBodyJobs) validateJobs(formats strfmt.Registry) error {
 	if swag.IsZero(m.Jobs) { // not required
 		return nil
 	}
@@ -63,8 +63,8 @@ func (m *ResponseBodyJobs) validateJobs(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validate this response body jobs based on the context it is used
-func (m *ResponseBodyJobs) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this request body jobs based on the context it is used
+func (m *RequestBodyJobs) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateJobs(ctx, formats); err != nil {
@@ -77,7 +77,7 @@ func (m *ResponseBodyJobs) ContextValidate(ctx context.Context, formats strfmt.R
 	return nil
 }
 
-func (m *ResponseBodyJobs) contextValidateJobs(ctx context.Context, formats strfmt.Registry) error {
+func (m *RequestBodyJobs) contextValidateJobs(ctx context.Context, formats strfmt.Registry) error {
 
 	for i := 0; i < len(m.Jobs); i++ {
 
@@ -103,7 +103,7 @@ func (m *ResponseBodyJobs) contextValidateJobs(ctx context.Context, formats strf
 }
 
 // MarshalBinary interface implementation
-func (m *ResponseBodyJobs) MarshalBinary() ([]byte, error) {
+func (m *RequestBodyJobs) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -111,8 +111,8 @@ func (m *ResponseBodyJobs) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ResponseBodyJobs) UnmarshalBinary(b []byte) error {
-	var res ResponseBodyJobs
+func (m *RequestBodyJobs) UnmarshalBinary(b []byte) error {
+	var res RequestBodyJobs
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

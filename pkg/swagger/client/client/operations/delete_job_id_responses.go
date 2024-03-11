@@ -63,7 +63,7 @@ DeleteJobIDOK describes a response with status code 200, with default header val
 success
 */
 type DeleteJobIDOK struct {
-	Payload *models.ResponseBodyJobInfo
+	Payload *models.JobInfo
 }
 
 // IsSuccess returns true when this delete job Id o k response has a 2xx status code
@@ -104,13 +104,13 @@ func (o *DeleteJobIDOK) String() string {
 	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdOK  %+v", 200, o.Payload)
 }
 
-func (o *DeleteJobIDOK) GetPayload() *models.ResponseBodyJobInfo {
+func (o *DeleteJobIDOK) GetPayload() *models.JobInfo {
 	return o.Payload
 }
 
 func (o *DeleteJobIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.ResponseBodyJobInfo)
+	o.Payload = new(models.JobInfo)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

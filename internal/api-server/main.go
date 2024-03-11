@@ -130,8 +130,9 @@ func main() {
 
 		pass, ok := cfg.Auth[username]
 
-		if ok && pass != password {
-			return nil, errors.New(401, "incorrect username/password")
+		if ok && pass == password {
+			principal := models.Principal(username)
+			return &principal, nil
 		}
 
 		// username not in the static credential list, assuming that the password is a oauth2 access token
@@ -193,6 +194,8 @@ func main() {
 	api.GetJobIDHandler = operations.GetJobIDHandlerFunc(handler.GetJob(ctx, inspector))
 	api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(handler.DeleteJob(ctx, inspector))
 	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, client))
+	api.PostJobsHandler = operations.PostJobsHandlerFunc(handler.NewJobs(ctx, client))
+	api.GetJobsHandler = operations.GetJobsHandlerFunc(handler.GetJobs(ctx, inspector))
 	api.GetDirHandler = operations.GetDirHandlerFunc(handler.ListDir(ctx))
 
 	// configure API

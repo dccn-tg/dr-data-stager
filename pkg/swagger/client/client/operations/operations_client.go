@@ -36,11 +36,15 @@ type ClientService interface {
 
 	GetJobID(params *GetJobIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobIDOK, error)
 
+	GetJobs(params *GetJobsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobsOK, error)
+
 	GetJobsStatus(params *GetJobsStatusParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobsStatusOK, error)
 
 	GetPing(params *GetPingParams, opts ...ClientOption) (*GetPingOK, error)
 
 	PostJob(params *PostJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostJobOK, error)
+
+	PostJobs(params *PostJobsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostJobsOK, *PostJobsMultiStatus, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -163,6 +167,45 @@ func (a *Client) GetJobID(params *GetJobIDParams, authInfo runtime.ClientAuthInf
 }
 
 /*
+GetJobs gets all jobs of a user
+*/
+func (a *Client) GetJobs(params *GetJobsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetJobsParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "GetJobs",
+		Method:             "GET",
+		PathPattern:        "/jobs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetJobsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetJobsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetJobs: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
+}
+
+/*
 GetJobsStatus gets list of jobs at given status
 */
 func (a *Client) GetJobsStatus(params *GetJobsStatusParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetJobsStatusOK, error) {
@@ -275,6 +318,46 @@ func (a *Client) PostJob(params *PostJobParams, authInfo runtime.ClientAuthInfoW
 	// unexpected success response
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
 	msg := fmt.Sprintf("unexpected success response for PostJob: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
+}
+
+/*
+PostJobs creates multiple new stager jobs
+*/
+func (a *Client) PostJobs(params *PostJobsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostJobsOK, *PostJobsMultiStatus, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPostJobsParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "PostJobs",
+		Method:             "POST",
+		PathPattern:        "/jobs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &PostJobsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, nil, err
+	}
+	switch value := result.(type) {
+	case *PostJobsOK:
+		return value, nil, nil
+	case *PostJobsMultiStatus:
+		return nil, value, nil
+	}
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for operations: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 

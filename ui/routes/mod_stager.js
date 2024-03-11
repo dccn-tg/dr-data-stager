@@ -298,46 +298,48 @@ router.put('/job/:id/state/inactive', function(request, response) {
 router.post('/jobs', function(request, response) {
 
     var sess = request.session;
-    var c = new RestClient({user: sess.user.stager,
-                            password: sess.pass.stager});
 
     var jobs = [];
     if ( typeof request.body.jobs !== 'undefined' ) {
         jobs = JSON.parse(request.body.jobs);
     }
 
-    var stagerJobs = [];
-    jobs.forEach( function(j) {
-        j.stagerUser = sess.user.stager;
-        j.rdmUser = sess.user.rdm;
-        j.rdmPass = util.encryptStringWithRsaPublicKey(sess.pass.rdm, '/opt/stager-ui/ssl/public.pem');
-        j.clientIF = 'irods';
-        j.timeout = 86400;
-        j.timeout_noprogress = 3600;
-        j.title = 'sync to ' + j.dstURL;
-
-        stagerJobs.push( {
-            type: 'rdm',
-            data: j,
-            options: {
-                attempts: 5,
-                backoff: { delay: 60000, type: 'fixed'}
-            }
-        });
+    var stagerJobs = jobs.map( j => {
+        return {
+            ...j,
+            stagerUser: request.user.username,
+            drUser: sess.user.rdm,
+            drPass: util.encryptStringWithRsaPublicKey(sess.pass.rdm, '/opt/stager-ui/ssl/public.pem'),
+            timeout: 86400,
+            timeout_noprogress: 3600,
+            title: 'sync to ' + j.dstURL
+        };
     });
 
     if ( stagerJobs.length > 0 ) {
-        var args = {headers: {"Accept": "application/json",
-                              "Content-Type": "application/json"},
-                    data: stagerJobs};
 
-        var url = config.get('stager.restfulEndpoint') + '/job';
-        var req = c.post(url, args, function(data, resp) {
+        var c = new RestClient({
+            user: request.user.username,
+            password: request.user.token
+        });
+
+        var args = {
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
+            data: {
+                jobs: stagerJobs
+            }
+        };
+
+        var url = config.get('stager.restfulEndpoint') + '/jobs';
+        c.post(url, args, function(data, resp) {
             try {
                 console.log('stager service response status: ' + resp.statusCode);
                 if ( resp.statusCode == 200 ) {
                     response.status(200);
-                    response.json(data);
+                    response.json(data.jobs);
                 } else {
                     response.status(404);
                     response.json([]);

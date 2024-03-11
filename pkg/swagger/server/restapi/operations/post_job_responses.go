@@ -26,7 +26,7 @@ type PostJobOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.ResponseBodyJobInfo `json:"body,omitempty"`
+	Payload *models.JobInfo `json:"body,omitempty"`
 }
 
 // NewPostJobOK creates PostJobOK with default headers values
@@ -36,13 +36,13 @@ func NewPostJobOK() *PostJobOK {
 }
 
 // WithPayload adds the payload to the post job o k response
-func (o *PostJobOK) WithPayload(payload *models.ResponseBodyJobInfo) *PostJobOK {
+func (o *PostJobOK) WithPayload(payload *models.JobInfo) *PostJobOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the post job o k response
-func (o *PostJobOK) SetPayload(payload *models.ResponseBodyJobInfo) {
+func (o *PostJobOK) SetPayload(payload *models.JobInfo) {
 	o.Payload = payload
 }
 

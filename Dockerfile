@@ -19,7 +19,7 @@ RUN ( yum clean all && \
 # create work directory 
 RUN ( mkdir -p /opt/stager )
 # create configuration directory 
-RUN ( mkdir -p /etc/stager )
+RUN ( mkdir -p /etc/stager/ssl )
 # expected data sources
 VOLUME ["/project", "/project_freenas", "/project_cephfs", "/home"]
 

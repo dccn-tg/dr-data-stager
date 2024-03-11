@@ -71,6 +71,11 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.GetJobID has not yet been implemented")
 		})
 	}
+	if api.GetJobsHandler == nil {
+		api.GetJobsHandler = operations.GetJobsHandlerFunc(func(params operations.GetJobsParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetJobs has not yet been implemented")
+		})
+	}
 	if api.GetJobsStatusHandler == nil {
 		api.GetJobsStatusHandler = operations.GetJobsStatusHandlerFunc(func(params operations.GetJobsStatusParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation operations.GetJobsStatus has not yet been implemented")
@@ -84,6 +89,11 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 	if api.PostJobHandler == nil {
 		api.PostJobHandler = operations.PostJobHandlerFunc(func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation operations.PostJob has not yet been implemented")
+		})
+	}
+	if api.PostJobsHandler == nil {
+		api.PostJobsHandler = operations.PostJobsHandlerFunc(func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation operations.PostJobs has not yet been implemented")
 		})
 	}
 

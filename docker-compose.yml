@@ -39,6 +39,7 @@ services:
     volumes:
       - ${IRODS_ICAT_CERT:-./docker/worker/icat.pem}:/opt/irods/ssl/icat.pem:ro
       - ${WORKER_CONFIG:-./config/worker.yml}:/etc/stager/worker.yml:ro
+      - ${CRYPTO_RSA_PRIVATE}:/etc/stager/ssl/keypair.pem:ro
     depends_on:
       - api-server
     command: -r redis://db:6379 -c /etc/stager/worker.yml
@@ -60,6 +61,7 @@ services:
       - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-clientsecret}
     volumes:
       - ${UI_CONFIG:-./ui/config/default.json}:/opt/stager-ui/config/default.json
+      - ${CRYPTO_RSA_PUBLIC}:/opt/stager-ui/ssl/public.pem:ro
     ports:
       - ${UI_EXTERNAL_PORT:-3080}:3080
     depends_on:
