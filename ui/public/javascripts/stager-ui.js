@@ -526,7 +526,7 @@ function formatJobDetail(j) {
     // HTML tag for start button
     var bt_start_html = '<button type="button" class="btn btn-sm btn-default ';
     if ( ['archived','completed'].includes(j.status.status) ) {
-        bt_start_html += 'active" onclick="showJobStartDialog(' + j.id + ')">';
+        bt_start_html += 'active" onclick="showJobStartDialog(\'' + j.id + '\')">';
     } else {
         bt_start_html += 'disabled">';
     }
@@ -535,13 +535,13 @@ function formatJobDetail(j) {
     // HTML tag for stop button
     var bt_stop_html = '<button type="button" class="btn btn-sm btn-default ';
     if ( ['pending','active','retry'].includes(j.status.status) ) {
-        bt_stop_html += 'active" onclick="showJobStopDialog(' + j.id + ')">';
+        bt_stop_html += 'active" onclick="showJobStopDialog(\'' + j.id + '\')">';
     } else {
         bt_stop_html += 'disabled">';
     }
     bt_stop_html += '<i data-toggle="tp-job-actions" title="stop/cancel" class="fa fa-stop"></i></button>';
 
-    var bt_delete_html = '<button type="button" class="btn btn-sm btn-danger active" onclick="showJobDeleteDialog(' + j.id + ')"><i data-toggle="tp-job-actions" title="delete" class="fa fa-trash"></i></button>';
+    var bt_delete_html = '<button type="button" class="btn btn-sm btn-danger active" onclick="showJobDeleteDialog(\'' + j.id + '\')"><i data-toggle="tp-job-actions" title="delete" class="fa fa-trash"></i></button>';
 
     var btn_actions = '<div class="btn-group" id="job_action">' +
                       bt_start_html + bt_stop_html + bt_delete_html +
