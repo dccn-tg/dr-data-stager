@@ -542,6 +542,7 @@ func enqueueStagerTask(ctx context.Context, client *asynq.Client, job *models.Jo
 		*job.DstURL,
 		*job.SrcURL,
 		*job.StagerUser,
+		job.StagerUserEmail.String(),
 		timeout,
 		timeoutNp,
 	)

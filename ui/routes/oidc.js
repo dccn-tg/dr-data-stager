@@ -37,7 +37,8 @@ var oidcStrategy = new OidcStrategy({
                 token: accessToken,
                 refresh_token: refreshToken,
                 username: profile['urn:dccn:uid'],
-                displayName: profile.name
+                displayName: profile.name,
+                email: profile.email
             });
         }).catch(err => {
             console.error(err);

@@ -44,7 +44,7 @@ type StagerPayload struct {
 	DrUser string `json:"drUser"`
 
 	// password of the DR data-access account
-	DrPass string `json:"drPass"`
+	DrPass string `json:"drPass,omitempty"`
 
 	// path or DR namespace (prefixed with irods:) of the destination endpoint
 	DstURL string `json:"dstURL"`
@@ -55,6 +55,9 @@ type StagerPayload struct {
 	// username of stager's local account
 	StagerUser string `json:"stagerUser"`
 
+	// email of stager's local account
+	StagerUserEmail string `json:"stagerUserEmail,omitempty"`
+
 	// allowed duration in seconds for entire transfer job (0 for no timeout)
 	Timeout int64 `json:"timeout,omitempty"`
 
@@ -63,7 +66,7 @@ type StagerPayload struct {
 }
 
 // NewStagerTask wraps payload data into a `asynq.Task` ready for enqueuing.
-func NewStagerTask(Title, DrUser, DrPass, DstURL, SrcURL, StagerUser string, Timeout, TimeoutNoprogress int64) (*asynq.Task, error) {
+func NewStagerTask(Title, DrUser, DrPass, DstURL, SrcURL, StagerUser, StagerUserEmail string, Timeout, TimeoutNoprogress int64) (*asynq.Task, error) {
 	payload, err := json.Marshal(StagerPayload{
 		Title:             Title,
 		DrUser:            DrUser,
@@ -71,6 +74,7 @@ func NewStagerTask(Title, DrUser, DrPass, DstURL, SrcURL, StagerUser string, Tim
 		DstURL:            DstURL,
 		SrcURL:            SrcURL,
 		StagerUser:        StagerUser,
+		StagerUserEmail:   StagerUserEmail,
 		Timeout:           Timeout,
 		TimeoutNoprogress: TimeoutNoprogress,
 	})

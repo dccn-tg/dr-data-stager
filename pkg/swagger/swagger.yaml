@@ -332,8 +332,12 @@ definitions:
         description: short description about the job
         type: string
       stagerUser:
-        description: username of stager's local account
+        description: username of the stager user
         type: string
+      stagerUserEmail:
+        description: email of the stager user
+        type: string
+        format: email
       drUser:
         description: username of the DR data-access account
         type: string

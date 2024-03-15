@@ -473,8 +473,13 @@ func init() {
           "type": "string"
         },
         "stagerUser": {
-          "description": "username of stager's local account",
+          "description": "username of the stager user",
           "type": "string"
+        },
+        "stagerUserEmail": {
+          "description": "email of the stager user",
+          "type": "string",
+          "format": "email"
         },
         "timeout": {
           "description": "allowed duration in seconds for entire transfer job (0 for no timeout)",
@@ -1094,8 +1099,13 @@ func init() {
           "type": "string"
         },
         "stagerUser": {
-          "description": "username of stager's local account",
+          "description": "username of the stager user",
           "type": "string"
+        },
+        "stagerUserEmail": {
+          "description": "email of the stager user",
+          "type": "string",
+          "format": "email"
         },
         "timeout": {
           "description": "allowed duration in seconds for entire transfer job (0 for no timeout)",

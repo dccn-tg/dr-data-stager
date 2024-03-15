@@ -34,9 +34,13 @@ type JobData struct {
 	// Required: true
 	SrcURL *string `json:"srcURL"`
 
-	// username of stager's local account
+	// username of the stager user
 	// Required: true
 	StagerUser *string `json:"stagerUser"`
+
+	// email of the stager user
+	// Format: email
+	StagerUserEmail strfmt.Email `json:"stagerUserEmail,omitempty"`
 
 	// allowed duration in seconds for entire transfer job (0 for no timeout)
 	Timeout int64 `json:"timeout,omitempty"`
@@ -66,6 +70,10 @@ func (m *JobData) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateStagerUser(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStagerUserEmail(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -109,6 +117,18 @@ func (m *JobData) validateSrcURL(formats strfmt.Registry) error {
 func (m *JobData) validateStagerUser(formats strfmt.Registry) error {
 
 	if err := validate.Required("stagerUser", "body", m.StagerUser); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *JobData) validateStagerUserEmail(formats strfmt.Registry) error {
+	if swag.IsZero(m.StagerUserEmail) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stagerUserEmail", "body", "email", m.StagerUserEmail.String(), formats); err != nil {
 		return err
 	}
 
