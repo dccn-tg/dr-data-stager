@@ -19,6 +19,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
 	"github.com/s12v/go-jwks"
 	"github.com/square/go-jose"
 
@@ -84,6 +85,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot parse redis URL: %s", err)
 	}
+
+	// initialize another redis client for incremental taskId generation
+	rdbOpts, _ := redis.ParseURL(*redisURL)
+	rdb4tid := redis.NewClient(rdbOpts)
+	defer rdb4tid.Close()
 
 	// Initialize Swagger
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
@@ -193,8 +199,8 @@ func main() {
 	api.GetPingHandler = operations.GetPingHandlerFunc(handler.GetPing(cfg))
 	api.GetJobIDHandler = operations.GetJobIDHandlerFunc(handler.GetJob(ctx, inspector))
 	api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(handler.DeleteJob(ctx, inspector))
-	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, client))
-	api.PostJobsHandler = operations.PostJobsHandlerFunc(handler.NewJobs(ctx, client))
+	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, client, rdb4tid))
+	api.PostJobsHandler = operations.PostJobsHandlerFunc(handler.NewJobs(ctx, client, rdb4tid))
 	api.GetJobsHandler = operations.GetJobsHandlerFunc(handler.GetJobs(ctx, inspector))
 	api.GetDirHandler = operations.GetDirHandlerFunc(handler.ListDir(ctx))
 

@@ -547,7 +547,8 @@ function formatJobDetail(j) {
                       bt_start_html + bt_stop_html + bt_delete_html +
                       '</div>';
 
-    var tcreate = j.timestamps.createdAt ? new Date(Number(j.timestamps.createdAt)*1000).toISOString() : "";
+
+    var tcreate = new Date(Number(j.timestamps.createdAt)*1000).toISOString();
     var tupdate = new Date(
         Number(
             Math.max(j.timestamps.lastFailedAt, j.timestamps.completedAt)
@@ -615,6 +616,11 @@ function runStagerUI(params) {
                 "data": null,
                 "defaultContent": ''
             },
+            // {
+            //     "data": "timestamps.createdAt",
+            //     "visible": false,
+            //     "searchable": false
+            // },
             { 
                 "data": "id",
                 "className": "dt-body-left",

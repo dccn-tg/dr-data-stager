@@ -8,8 +8,10 @@ package models
 import (
 	"context"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // JobTimestamps job timestamps
@@ -18,20 +20,81 @@ import (
 type JobTimestamps struct {
 
 	// timestamp at which the job is completed, -62135596800 (0001-01-01T00:00:00) if not applicable.
-	CompletedAt int64 `json:"completedAt,omitempty"`
+	// Required: true
+	CompletedAt *int64 `json:"completedAt"`
 
 	// timestamp at which the job is created.
-	CreatedAt int64 `json:"createdAt,omitempty"`
+	// Required: true
+	CreatedAt *int64 `json:"createdAt"`
 
 	// timestamp at which the job failed the last time, -62135596800 (0001-01-01T00:00:00) if not applicable.
-	LastFailedAt int64 `json:"lastFailedAt,omitempty"`
+	// Required: true
+	LastFailedAt *int64 `json:"lastFailedAt"`
 
 	// timestamp at which the job will be processed, -62135596800 (0001-01-01T00:00:00) if not applicable.
-	NextProcessAt int64 `json:"nextProcessAt,omitempty"`
+	// Required: true
+	NextProcessAt *int64 `json:"nextProcessAt"`
 }
 
 // Validate validates this job timestamps
 func (m *JobTimestamps) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateCompletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateLastFailedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNextProcessAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *JobTimestamps) validateCompletedAt(formats strfmt.Registry) error {
+
+	if err := validate.Required("completedAt", "body", m.CompletedAt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *JobTimestamps) validateCreatedAt(formats strfmt.Registry) error {
+
+	if err := validate.Required("createdAt", "body", m.CreatedAt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *JobTimestamps) validateLastFailedAt(formats strfmt.Registry) error {
+
+	if err := validate.Required("lastFailedAt", "body", m.LastFailedAt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *JobTimestamps) validateNextProcessAt(formats strfmt.Registry) error {
+
+	if err := validate.Required("nextProcessAt", "body", m.NextProcessAt); err != nil {
+		return err
+	}
+
 	return nil
 }
 

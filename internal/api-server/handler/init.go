@@ -19,8 +19,7 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/hibiken/asynq"
-
-	suuid "github.com/lithammer/shortuuid/v4"
+	"github.com/redis/go-redis/v9"
 
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
@@ -280,7 +279,7 @@ func ListDir(ctx context.Context) func(params operations.GetDirParams, principal
 }
 
 // NewJobs registers the incoming transfer request as multiple stager jobs in the queue.
-func NewJobs(ctx context.Context, client *asynq.Client) func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
+func NewJobs(ctx context.Context, client *asynq.Client, rdb *redis.Client) func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
 
 		submitted := []*models.JobInfo{}
@@ -291,7 +290,7 @@ func NewJobs(ctx context.Context, client *asynq.Client) func(params operations.P
 				continue
 			}
 
-			taskInfo, err := enqueueStagerTask(ctx, client, jdata)
+			taskInfo, err := enqueueStagerTask(ctx, client, jdata, rdb)
 			if err != nil {
 				log.Errorf("cannot enqueue task: %s", err)
 				continue
@@ -333,7 +332,7 @@ func NewJobs(ctx context.Context, client *asynq.Client) func(params operations.P
 }
 
 // NewJob registers the incoming transfer request as a new stager job in the queue.
-func NewJob(ctx context.Context, client *asynq.Client) func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
+func NewJob(ctx context.Context, client *asynq.Client, rdb *redis.Client) func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 
 		// check if job owner matches the authenticated principal
@@ -346,7 +345,7 @@ func NewJob(ctx context.Context, client *asynq.Client) func(params operations.Po
 			)
 		}
 
-		taskInfo, err := enqueueStagerTask(ctx, client, params.Data)
+		taskInfo, err := enqueueStagerTask(ctx, client, params.Data, rdb)
 		if err != nil {
 			log.Errorf("cannot enqueue task: %s", err)
 			return operations.NewPostJobInternalServerError().WithPayload(
@@ -522,7 +521,7 @@ func getTasksOwnedBy(inspector *asynq.Inspector, username string) []*models.JobI
 }
 
 // enqueueStagerTask creates a new stager task in the asynq queue.
-func enqueueStagerTask(ctx context.Context, client *asynq.Client, job *models.JobData) (*asynq.TaskInfo, error) {
+func enqueueStagerTask(ctx context.Context, client *asynq.Client, job *models.JobData, rdb *redis.Client) (*asynq.TaskInfo, error) {
 	// set default job timeout (24 hours)
 	timeout := job.Timeout
 	if timeout <= 0 {
@@ -551,10 +550,15 @@ func enqueueStagerTask(ctx context.Context, client *asynq.Client, job *models.Jo
 		return nil, err
 	}
 
+	tid, err := rdb.Incr(ctx, "stager:lastTaskId").Result()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get next task id: %s", err)
+	}
+
 	return client.EnqueueContext(
 		ctx,
 		t,
-		asynq.TaskID(fmt.Sprintf("%s.%s", *job.StagerUser, suuid.New())),
+		asynq.TaskID(fmt.Sprintf("%s.%d", *job.StagerUser, tid)),
 		asynq.Retention(2*24*time.Hour),
 		asynq.MaxRetry(4),
 		asynq.Timeout(time.Duration(timeout)*time.Second), // this set the hard timeout
@@ -583,6 +587,11 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.JobInfo, error) {
 	// job identifier
 	jid := models.JobID(task.ID)
 
+	createdAt := j.CreatedAt
+	nextProcessedAt := task.NextProcessAt.Unix()
+	lastFailedAt := task.LastFailedAt.Unix()
+	completedAt := task.CompletedAt.Unix()
+
 	attempts := int64(task.Retried + 1)
 
 	return &models.JobInfo{
@@ -597,10 +606,10 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.JobInfo, error) {
 			TimeoutNoprogress: j.TimeoutNoprogress,
 		},
 		Timestamps: &models.JobTimestamps{
-			CreatedAt:     j.CreatedAt,
-			NextProcessAt: task.NextProcessAt.Unix(),
-			LastFailedAt:  task.LastFailedAt.Unix(),
-			CompletedAt:   task.CompletedAt.Unix(),
+			CreatedAt:     &createdAt,
+			NextProcessAt: &nextProcessedAt,
+			LastFailedAt:  &lastFailedAt,
+			CompletedAt:   &completedAt,
 		},
 		Status: &models.JobStatus{
 			Status: &jStatus,
