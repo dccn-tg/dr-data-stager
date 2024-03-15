@@ -504,6 +504,7 @@ func init() {
       "required": [
         "id",
         "data",
+        "timestamps",
         "status"
       ],
       "properties": {
@@ -515,6 +516,9 @@ func init() {
         },
         "status": {
           "$ref": "#/definitions/jobStatus"
+        },
+        "timestamps": {
+          "$ref": "#/definitions/jobTimestamps"
         }
       }
     },
@@ -545,9 +549,14 @@ func init() {
       "required": [
         "status",
         "error",
+        "attempts",
         "progress"
       ],
       "properties": {
+        "attempts": {
+          "description": "number of attempts",
+          "type": "integer"
+        },
         "error": {
           "description": "job error message from the last execution.",
           "type": "string"
@@ -566,6 +575,27 @@ func init() {
             "succeeded",
             "canceled"
           ]
+        }
+      }
+    },
+    "jobTimestamps": {
+      "description": "job timestamps",
+      "properties": {
+        "completedAt": {
+          "description": "timestamp at which the job is completed, -62135596800 (0001-01-01T00:00:00) if not applicable.",
+          "type": "integer"
+        },
+        "createdAt": {
+          "description": "timestamp at which the job is created.",
+          "type": "integer"
+        },
+        "lastFailedAt": {
+          "description": "timestamp at which the job failed the last time, -62135596800 (0001-01-01T00:00:00) if not applicable.",
+          "type": "integer"
+        },
+        "nextProcessAt": {
+          "description": "timestamp at which the job will be processed, -62135596800 (0001-01-01T00:00:00) if not applicable.",
+          "type": "integer"
         }
       }
     },
@@ -1130,6 +1160,7 @@ func init() {
       "required": [
         "id",
         "data",
+        "timestamps",
         "status"
       ],
       "properties": {
@@ -1141,6 +1172,9 @@ func init() {
         },
         "status": {
           "$ref": "#/definitions/jobStatus"
+        },
+        "timestamps": {
+          "$ref": "#/definitions/jobTimestamps"
         }
       }
     },
@@ -1171,9 +1205,14 @@ func init() {
       "required": [
         "status",
         "error",
+        "attempts",
         "progress"
       ],
       "properties": {
+        "attempts": {
+          "description": "number of attempts",
+          "type": "integer"
+        },
         "error": {
           "description": "job error message from the last execution.",
           "type": "string"
@@ -1192,6 +1231,27 @@ func init() {
             "succeeded",
             "canceled"
           ]
+        }
+      }
+    },
+    "jobTimestamps": {
+      "description": "job timestamps",
+      "properties": {
+        "completedAt": {
+          "description": "timestamp at which the job is completed, -62135596800 (0001-01-01T00:00:00) if not applicable.",
+          "type": "integer"
+        },
+        "createdAt": {
+          "description": "timestamp at which the job is created.",
+          "type": "integer"
+        },
+        "lastFailedAt": {
+          "description": "timestamp at which the job failed the last time, -62135596800 (0001-01-01T00:00:00) if not applicable.",
+          "type": "integer"
+        },
+        "nextProcessAt": {
+          "description": "timestamp at which the job will be processed, -62135596800 (0001-01-01T00:00:00) if not applicable.",
+          "type": "integer"
         }
       }
     },

@@ -20,6 +20,10 @@ import (
 // swagger:model jobStatus
 type JobStatus struct {
 
+	// number of attempts
+	// Required: true
+	Attempts *int64 `json:"attempts"`
+
 	// job error message from the last execution.
 	// Required: true
 	Error *string `json:"error"`
@@ -38,6 +42,10 @@ type JobStatus struct {
 func (m *JobStatus) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateAttempts(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateError(formats); err != nil {
 		res = append(res, err)
 	}
@@ -53,6 +61,15 @@ func (m *JobStatus) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *JobStatus) validateAttempts(formats strfmt.Registry) error {
+
+	if err := validate.Required("attempts", "body", m.Attempts); err != nil {
+		return err
+	}
+
 	return nil
 }
 

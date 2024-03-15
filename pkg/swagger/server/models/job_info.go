@@ -30,6 +30,10 @@ type JobInfo struct {
 	// status
 	// Required: true
 	Status *JobStatus `json:"status"`
+
+	// timestamps
+	// Required: true
+	Timestamps *JobTimestamps `json:"timestamps"`
 }
 
 // Validate validates this job info
@@ -45,6 +49,10 @@ func (m *JobInfo) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTimestamps(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -118,6 +126,26 @@ func (m *JobInfo) validateStatus(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *JobInfo) validateTimestamps(formats strfmt.Registry) error {
+
+	if err := validate.Required("timestamps", "body", m.Timestamps); err != nil {
+		return err
+	}
+
+	if m.Timestamps != nil {
+		if err := m.Timestamps.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("timestamps")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("timestamps")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 // ContextValidate validate this job info based on the context it is used
 func (m *JobInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
@@ -131,6 +159,10 @@ func (m *JobInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 	}
 
 	if err := m.contextValidateStatus(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateTimestamps(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -183,6 +215,23 @@ func (m *JobInfo) contextValidateStatus(ctx context.Context, formats strfmt.Regi
 				return ve.ValidateName("status")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("status")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *JobInfo) contextValidateTimestamps(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Timestamps != nil {
+
+		if err := m.Timestamps.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("timestamps")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("timestamps")
 			}
 			return err
 		}

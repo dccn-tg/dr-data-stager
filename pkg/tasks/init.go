@@ -37,6 +37,10 @@ var (
 
 // StagerPayload defines the data structure of the stager file transfer payload.
 type StagerPayload struct {
+
+	// creation time of the payload
+	CreatedAt int64 `json:"createdAt,omitempty"`
+
 	// short description about the job
 	Title string `json:"title"`
 
@@ -68,6 +72,7 @@ type StagerPayload struct {
 // NewStagerTask wraps payload data into a `asynq.Task` ready for enqueuing.
 func NewStagerTask(Title, DrUser, DrPass, DstURL, SrcURL, StagerUser, StagerUserEmail string, Timeout, TimeoutNoprogress int64) (*asynq.Task, error) {
 	payload, err := json.Marshal(StagerPayload{
+		CreatedAt:         time.Now().Unix(),
 		Title:             Title,
 		DrUser:            DrUser,
 		DrPass:            DrPass,

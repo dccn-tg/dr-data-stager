@@ -273,6 +273,8 @@ definitions:
     properties:
       id:
         $ref: '#/definitions/jobID'
+      timestamps:
+        $ref: '#/definitions/jobTimestamps'
       data:
         $ref: '#/definitions/jobData'
       status:
@@ -280,7 +282,24 @@ definitions:
     required:
       - id
       - data
+      - timestamps
       - status
+
+  jobTimestamps:
+    description: job timestamps
+    properties:
+      createdAt:
+        description: timestamp at which the job is created.
+        type: integer
+      lastFailedAt:
+        description: timestamp at which the job failed the last time, -62135596800 (0001-01-01T00:00:00) if not applicable.
+        type: integer
+      nextProcessAt:
+        description: timestamp at which the job will be processed, -62135596800 (0001-01-01T00:00:00) if not applicable.
+        type: integer
+      completedAt:
+        description: timestamp at which the job is completed, -62135596800 (0001-01-01T00:00:00) if not applicable.
+        type: integer
 
   responseDirEntries:
     description: JSON object containing dir entries.
@@ -377,12 +396,16 @@ definitions:
       error:
         description: job error message from the last execution.
         type: string
+      attempts:
+        description: number of attempts
+        type: integer
       progress:
         description: job progress info from the last execution.
         $ref: '#/definitions/jobProgress'
     required:
       - status
       - error
+      - attempts
       - progress
 
   jobProgress:

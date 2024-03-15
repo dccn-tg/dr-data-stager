@@ -583,6 +583,8 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.JobInfo, error) {
 	// job identifier
 	jid := models.JobID(task.ID)
 
+	attempts := int64(task.Retried + 1)
+
 	return &models.JobInfo{
 		ID: &jid,
 		Data: &models.JobData{
@@ -594,6 +596,12 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.JobInfo, error) {
 			Timeout:           j.Timeout,
 			TimeoutNoprogress: j.TimeoutNoprogress,
 		},
+		Timestamps: &models.JobTimestamps{
+			CreatedAt:     j.CreatedAt,
+			NextProcessAt: task.NextProcessAt.Unix(),
+			LastFailedAt:  task.LastFailedAt.Unix(),
+			CompletedAt:   task.CompletedAt.Unix(),
+		},
 		Status: &models.JobStatus{
 			Status: &jStatus,
 			Progress: &models.JobProgress{
@@ -601,7 +609,8 @@ func composeResponseBodyJobInfo(task *asynq.TaskInfo) (*models.JobInfo, error) {
 				Processed: &jResult.Progress.Processed,
 				Failed:    &jResult.Progress.Failed,
 			},
-			Error: &task.LastErr,
+			Error:    &task.LastErr,
+			Attempts: &attempts,
 		},
 	}, nil
 }

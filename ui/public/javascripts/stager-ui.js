@@ -525,7 +525,7 @@ function formatJobDetail(j) {
 
     // HTML tag for start button
     var bt_start_html = '<button type="button" class="btn btn-sm btn-default ';
-    if ( ['complete','failed'].includes(j.state) ) {
+    if ( ['archived','completed'].includes(j.status.status) ) {
         bt_start_html += 'active" onclick="showJobStartDialog(' + j.id + ')">';
     } else {
         bt_start_html += 'disabled">';
@@ -534,7 +534,7 @@ function formatJobDetail(j) {
 
     // HTML tag for stop button
     var bt_stop_html = '<button type="button" class="btn btn-sm btn-default ';
-    if ( ['active'].includes(j.state) ) {
+    if ( ['pending','active','retry'].includes(j.status.status) ) {
         bt_stop_html += 'active" onclick="showJobStopDialog(' + j.id + ')">';
     } else {
         bt_stop_html += 'disabled">';
@@ -546,6 +546,13 @@ function formatJobDetail(j) {
     var btn_actions = '<div class="btn-group" id="job_action">' +
                       bt_start_html + bt_stop_html + bt_delete_html +
                       '</div>';
+
+    var tcreate = j.timestamps.createdAt ? new Date(Number(j.timestamps.createdAt)*1000).toISOString() : "";
+    var tupdate = new Date(
+        Number(
+            Math.max(j.timestamps.lastFailedAt, j.timestamps.completedAt)
+        )*1000
+    ).toISOString();
 
     return '<div class="panel panel-default">'
     + '<div class="panel-body">'
@@ -561,15 +568,15 @@ function formatJobDetail(j) {
     + '</tr>'
     + '<tr>'
     + '<td>Created at:</td>'
-    + '<td>' + new Date(Number(j.created_at)).toISOString() + '</td>'
+    + '<td>' + tcreate + '</td>'
     + '</tr>'
     + '<tr>'
     + '<td>Updated at:</td>'
-    + '<td>' + new Date(Number(j.updated_at)).toISOString() + '</td>'
+    + '<td>' + tupdate + '</td>'
     + '</tr>'
     + '<tr>'
     + '<td>Attempts:</td>'
-    + '<td>' + j.attempts.made + '</td>'
+    + '<td>' + j.status.attempts + '</td>'
     + '</tr>'
     + '</tbody>'
     + '</table>'
