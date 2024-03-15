@@ -179,43 +179,6 @@ router.get('/jobs/:state/:from-:to', function(request, response) {
     });
 });
 
-/* Get all transfer jobs from stager and show only those belongs to the same user */
-router.get('/jobs/:from-:to', function(request, response) {
-
-    var args = { headers: { "Accept": "application/json" } };
-    var sess = request.session;
-    var c = new RestClient({user: sess.user.stager,
-                            password: sess.pass.stager});
-
-    var jobs = {};
-    var idx_f = request.params.from;
-    var idx_t = request.params.to;
-    var url = config.get('stager.restfulEndpoint') + '/jobs/' + idx_f + '..' + idx_t + '/desc';
-    c.get(url, args, function(data, resp) {
-        try {
-            console.log('stager response status: ' + resp.statusCode);
-            if ( resp.statusCode == 200 ) {
-                response.status(200);
-                jobs = data.filter( function(j) {
-                    return (typeof j.data !== 'undefined') &&
-                           (typeof j.data.stagerUser !== 'undefined') &&
-                           (j.data.stagerUser == sess.user.stager);
-                });
-                response.json(jobs);
-            } else {
-                response.status(404);
-                response.json({});
-            }
-        } catch(e) {
-            console.error(e);
-            util.responseOnError('json', {}, response);
-        }
-    }).on('error', function(e) {
-        console.error(e);
-        util.responseOnError('json', {}, response);
-    });
-});
-
 /* Get single transfer job by id */
 router.get('/job/:id', function(request, response) {
     var sess = request.session;
@@ -295,7 +258,7 @@ router.put('/job/:id/state/inactive', function(request, response) {
 });
 
 /* Submit transfer jobs to stager */
-router.post('/jobs', function(request, response) {
+router.post('/jobs', auth.isAuthenticated, function(request, response) {
 
     var sess = request.session;
 
@@ -308,6 +271,7 @@ router.post('/jobs', function(request, response) {
         return {
             ...j,
             stagerUser: request.user.username,
+            stagerUserEmail: request.user.email,
             drUser: sess.user.rdm,
             drPass: util.encryptStringWithRsaPublicKey(sess.pass.rdm, '/opt/stager-ui/ssl/public.pem'),
             timeout: 86400,
@@ -357,6 +321,36 @@ router.post('/jobs', function(request, response) {
         response.status(200);
         response.json([]);
     }
+});
+
+/* Get all transfer jobs from stager and show only those belongs to the same user */
+router.get('/jobs', auth.isAuthenticated, function(request, response) {
+
+    var args = { headers: { "Accept": "application/json" } };
+    var c = new RestClient({
+        user: request.user.username,
+        password: request.user.token
+    });
+
+    var url = config.get('stager.restfulEndpoint') + '/jobs';
+    c.get(url, args, function(data, resp) {
+        try {
+            console.log('stager response status: ' + resp.statusCode);
+            if ( resp.statusCode == 200 ) {
+                response.status(200);
+                response.json(data.jobs);
+            } else {
+                response.status(404);
+                response.json([]);
+            }
+        } catch(e) {
+            console.error(e);
+            util.responseOnError('json', [], response);
+        }
+    }).on('error', function(e) {
+        console.error(e);
+        util.responseOnError('json', [], response);
+    });
 });
 
 module.exports = router;

@@ -378,25 +378,9 @@ function doMakeDir(loc, base, dirName) {
  * @param {Object} table - a jQuery DataTables object, see {@link https://datatables.net|DataTables}
  */
 function updateJobHistoryTable(table) {
-    $.get("/stager/job/state", function(data) {
-        // count totoal amount of jobs
-        var idx_t = 0;
-        Object.keys(data).forEach(function(k) {
-            if ( k.indexOf('Count') >= 0 ) {
-                idx_t += data[k];
-            }
-        });
-
-        // get jobs
-        if ( idx_t > 0 ) {
-            var url = "/stager/jobs/0-" + idx_t;
-            $.get(url, function(data) {
-                // feed the data to job history table
-                jobsData = data;
-                table.ajax.reload();
-            });
-        }
-    }).done( function() {
+    $.get("/stager/jobs", function(data) {
+        jobsData = data;
+        table.ajax.reload();
     }).fail( function() {
         // whenever there is an error, stop the background process
         $('#history-refresh-toggle').bootstrapSwitch('state',false);
@@ -612,18 +596,6 @@ function runStagerUI(params) {
         "ajax": function(data, callback, settings) {
             callback({data: jobsData});
         },
-        "columnDefs": [
-            {
-                "render": function(data, type, row) {
-                    if ( row.progress_data ) {
-                        return data + ' (' + row.progress_data + ')';
-                    } else {
-                        return data;
-                    }
-                },
-                "targets": 4
-            }
-        ],
         "columns": [
             {
                 "className": 'details-control',
@@ -631,16 +603,32 @@ function runStagerUI(params) {
                 "data": null,
                 "defaultContent": ''
             },
-            { "data": "id",
-            "className": "dt-body-center"},
-            { "data": "data.srcURL",
-            "render": $.fn.dataTable.render.ellipsis(20)},
-            { "data": "data.dstURL",
-            "render": $.fn.dataTable.render.ellipsis(20)},
-            { "data": "state",
-            "className": "dt-body-left"},
-            { "data": "progress",
-            "render": $.fn.dataTable.render.percentBar('square','#FFF','#269ABC','#31B0D5','#286090',0)}
+            { 
+                "data": "id",
+                "className": "dt-body-left",
+                "render": (data, type, row) => {
+                    return data.substring(data.indexOf(".") + 1);
+                }
+            },
+            {
+                "data": "data.srcURL",
+                "render": $.fn.dataTable.render.ellipsis(20)
+            },
+            { 
+                "data": "data.dstURL",
+                "render": $.fn.dataTable.render.ellipsis(20)
+            },
+            {
+                "data": "status.status",
+                "className": "dt-body-left",
+            },
+            { 
+                "data": "status.progress",
+                "render": (data, type, row) => {
+                    return data.processed + '/' + data.failed + '/' + data.total;
+                }
+                // "render": $.fn.dataTable.render.percentBar('square','#FFF','#269ABC','#31B0D5','#286090',0)
+            }
         ],
         "order": [[1, 'desc']]
     });
