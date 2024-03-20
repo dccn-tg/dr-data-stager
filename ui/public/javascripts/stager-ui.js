@@ -452,7 +452,7 @@ function deleteJob(id) {
             if ( data.message ) { showAppInfo(data.message); }
             // remove entry from the jobsData
             var idx = jobsData.map(function(j) { return j.id; }).indexOf(id);
-            // make clearn deletion, i.e. no empty slots left over in array
+            // make clean deletion, i.e. no empty slots left over in array
             if ( idx >= 0 ) { jobsData.splice(idx,1); }
             // refresh the jobsTable
             jobTable.ajax.reload();
@@ -618,8 +618,6 @@ function runStagerUI(params) {
                     percentage: p
                 }
             });
-
-            console.log("data:", data);
 
             callback({data: data});
         },

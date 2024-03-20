@@ -197,35 +197,7 @@ router.get('/job/:id', function(request, response) {
     }
 });
 
-/* delete an existing job */
-router.delete('job/:id', function(request, response) {
-    var sess = request.session;
-    var c = new RestClient({user: sess.user.stager,
-                            password: sess.pass.stager});                        
-    // get the job to check if the job is owned by the stager users
-    try {
-        _getJobDetail(request.params.id, sess.user.stager, sess.pass.stager, function(job, error) {
-            if (error) {
-                console.error(e);
-                util.responseOnError('json', {}, response);
-            }
-            var url = config.get('stager.restfulEndpoint') + '/job/' + request.params.id;
-            var args = { headers: { "Accept": "application/json" } };
-            var req = c.delete(url, args, function(msg, resp) {
-                console.log('stager response status: ' + resp.statusCode);
-                if ( resp.statusCode == 200 ) {
-                    response.json(msg);
-                } else {
-                    response.status(404);
-                    response.json({});
-                }            
-            });
-        });
-    } catch(e) {
-        console.error(e);
-        util.responseOnError('json', {}, response);
-    }
-});
+
 
 /* Start or restart a stopped job */
 router.put('/job/:id/state/inactive', function(request, response) {
@@ -300,12 +272,12 @@ router.post('/jobs', auth.isAuthenticated, function(request, response) {
         var url = config.get('stager.restfulEndpoint') + '/jobs';
         c.post(url, args, function(data, resp) {
             try {
-                console.log('stager service response status: ' + resp.statusCode);
                 if ( resp.statusCode == 200 ) {
                     response.status(200);
                     response.json(data.jobs);
                 } else {
-                    response.status(404);
+                    console.error('api-server response status: ' + resp.statusCode);
+                    response.status(resp.statusCode);
                     response.json([]);
                 }
             } catch(e) {
@@ -334,22 +306,45 @@ router.get('/jobs', auth.isAuthenticated, function(request, response) {
 
     var url = config.get('stager.restfulEndpoint') + '/jobs';
     c.get(url, args, function(data, resp) {
-        try {
-            console.log('stager response status: ' + resp.statusCode);
-            if ( resp.statusCode == 200 ) {
-                response.status(200);
-                response.json(data.jobs);
-            } else {
-                response.status(404);
-                response.json([]);
-            }
-        } catch(e) {
-            console.error(e);
-            util.responseOnError('json', [], response);
+        if ( resp.statusCode == 200 ) {
+            response.status(200);
+            response.json(data.jobs);
+        } else {
+            console.error('api-server response status: ' + resp.statusCode);
+            response.status(resp.statusCode);
+            response.json([]);
         }
     }).on('error', function(e) {
         console.error(e);
         util.responseOnError('json', [], response);
+    });
+});
+
+/* delete an existing job */
+router.delete('/job/:id', auth.isAuthenticated, function(request, response) {
+
+    var args = { headers: { "Accept": "application/json" } };
+    var c = new RestClient({
+        user: request.user.username,
+        password: request.user.token
+    });
+
+    var url = config.get('stager.restfulEndpoint') + '/job/' + request.params.id;
+
+    c.delete(url, args, function(data, resp) {
+        if ( resp.statusCode == 200 ) {
+            response.status(200);
+            response.json(data);
+        } else {
+            console.log('api-server response status: ' + resp.statusCode);
+            response.status(resp.statusCode);
+            response.json({
+                message: resp.statusMessage
+            });
+        }
+    }).on('error', function(e) {
+        console.error(e);
+        util.responseOnError('json', {}, response);
     });
 });
 

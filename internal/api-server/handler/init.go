@@ -151,9 +151,22 @@ func DeleteJob(ctx context.Context, inspector *asynq.Inspector) func(params oper
 			)
 		}
 
-		// try to cancel the task before deleting it
-		if err := inspector.CancelProcessing(id); err != nil {
-			log.Errorf("[%s] cannot cancel task: %s", id, err)
+		// cancel the task if it's still active, and wait until the state changes away from active.
+		for {
+			if taskInfo.State != asynq.TaskStateActive {
+				break
+			}
+			if err := inspector.CancelProcessing(id); err != nil {
+				log.Errorf("[%s] cannot cancel task: %s", id, err)
+				return operations.NewDeleteJobIDInternalServerError().WithPayload(
+					&models.ResponseBody500{
+						ErrorMessage: err.Error(),
+						ExitCode:     JobQueueError,
+					},
+				)
+			} else {
+				taskInfo, _ = inspector.GetTaskInfo(taskInfo.Queue, id)
+			}
 		}
 
 		if err := inspector.DeleteTask(taskInfo.Queue, id); err != nil {
