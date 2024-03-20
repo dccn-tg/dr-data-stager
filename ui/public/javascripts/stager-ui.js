@@ -607,7 +607,21 @@ function runStagerUI(params) {
      */
     jobTable = $('#job_table').DataTable({
         "ajax": function(data, callback, settings) {
-            callback({data: jobsData});
+            data = jobsData.map(d => {
+                p = 0;
+                if ( d.status.progress.total > 0 ) {
+                    p = 100 * (d.status.progress.processed + d.status.progress.failed) / d.status.progress.total;
+                }
+
+                return {
+                    ...d,
+                    percentage: p
+                }
+            });
+
+            console.log("data:", data);
+
+            callback({data: data});
         },
         "columns": [
             {
@@ -641,11 +655,8 @@ function runStagerUI(params) {
                 "className": "dt-body-left",
             },
             { 
-                "data": "status.progress",
-                "render": (data, type, row) => {
-                    return data.processed + '/' + data.failed + '/' + data.total;
-                }
-                // "render": $.fn.dataTable.render.percentBar('square','#FFF','#269ABC','#31B0D5','#286090',0)
+                "data": "percentage",
+                "render": $.fn.dataTable.render.percentBar('square','#FFF','#269ABC','#31B0D5','#286090',0)
             }
         ],
         "order": [[1, 'desc']]
