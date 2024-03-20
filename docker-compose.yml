@@ -6,7 +6,7 @@ services:
     image: redis
     user: root
     volumes:
-      - ${TASK_DB_REDIS_DATA:-stager_db_data}:/data
+      - ${TASK_DB_REDIS_DATA:-db}:/data
     command: --appendonly yes
 
   # stager api server
@@ -88,5 +88,5 @@ services:
         max-file: "5"
 
 volumes:
-  stager_db_data:
+  db:
     
