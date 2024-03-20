@@ -26,6 +26,64 @@ func init() {
   },
   "basePath": "/v1",
   "paths": {
+    "/collection/{type}/project/{number}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "retrieve RDR data collection associated with a project",
+        "parameters": [
+          {
+            "enum": [
+              "dac",
+              "DAC",
+              "rdc",
+              "RDC",
+              "dsc",
+              "DSC"
+            ],
+            "type": "string",
+            "description": "type of collection",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project number",
+            "name": "number",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/collection"
+            }
+          },
+          "404": {
+            "description": "collection not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "collection not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/dir": {
       "get": {
         "security": [
@@ -403,9 +461,79 @@ func init() {
           }
         }
       }
+    },
+    "/rdm/{type}/project/{number}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "retrieve RDR data collection associated with a project",
+        "parameters": [
+          {
+            "enum": [
+              "dac",
+              "DAC",
+              "rdc",
+              "RDC",
+              "dsc",
+              "DSC"
+            ],
+            "type": "string",
+            "description": "type of collection",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project number",
+            "name": "number",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/collection"
+            }
+          },
+          "404": {
+            "description": "collection not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "collection not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "collection": {
+      "description": "JSON object of a RDR collection",
+      "required": [
+        "collName"
+      ],
+      "properties": {
+        "collName": {
+          "description": "iRODS namespace for the collection",
+          "type": "string"
+        }
+      }
+    },
     "dirEntry": {
       "description": "directory entry",
       "required": [
@@ -688,6 +816,64 @@ func init() {
   },
   "basePath": "/v1",
   "paths": {
+    "/collection/{type}/project/{number}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "retrieve RDR data collection associated with a project",
+        "parameters": [
+          {
+            "enum": [
+              "dac",
+              "DAC",
+              "rdc",
+              "RDC",
+              "dsc",
+              "DSC"
+            ],
+            "type": "string",
+            "description": "type of collection",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project number",
+            "name": "number",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/collection"
+            }
+          },
+          "404": {
+            "description": "collection not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "collection not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/dir": {
       "get": {
         "security": [
@@ -1065,9 +1251,79 @@ func init() {
           }
         }
       }
+    },
+    "/rdm/{type}/project/{number}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "retrieve RDR data collection associated with a project",
+        "parameters": [
+          {
+            "enum": [
+              "dac",
+              "DAC",
+              "rdc",
+              "RDC",
+              "dsc",
+              "DSC"
+            ],
+            "type": "string",
+            "description": "type of collection",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project number",
+            "name": "number",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/collection"
+            }
+          },
+          "404": {
+            "description": "collection not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "collection not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "collection": {
+      "description": "JSON object of a RDR collection",
+      "required": [
+        "collName"
+      ],
+      "properties": {
+        "collName": {
+          "description": "iRODS namespace for the collection",
+          "type": "string"
+        }
+      }
+    },
     "dirEntry": {
       "description": "directory entry",
       "required": [

@@ -206,7 +206,7 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 				log.Errorf("[%s] fail to terminate s-isync: %s", tid, err)
 			}
 
-			return err
+			return asynq.SkipRetry
 		}
 	}
 }

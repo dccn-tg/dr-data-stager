@@ -61,6 +61,11 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.DeleteJobID has not yet been implemented")
 		})
 	}
+	if api.GetCollectionTypeProjectNumberHandler == nil {
+		api.GetCollectionTypeProjectNumberHandler = operations.GetCollectionTypeProjectNumberHandlerFunc(func(params operations.GetCollectionTypeProjectNumberParams) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetCollectionTypeProjectNumber has not yet been implemented")
+		})
+	}
 	if api.GetDirHandler == nil {
 		api.GetDirHandler = operations.GetDirHandlerFunc(func(params operations.GetDirParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation operations.GetDir has not yet been implemented")
@@ -84,6 +89,11 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 	if api.GetPingHandler == nil {
 		api.GetPingHandler = operations.GetPingHandlerFunc(func(params operations.GetPingParams) middleware.Responder {
 			return middleware.NotImplemented("operation operations.GetPing has not yet been implemented")
+		})
+	}
+	if api.GetRdmTypeProjectNumberHandler == nil {
+		api.GetRdmTypeProjectNumberHandler = operations.GetRdmTypeProjectNumberHandlerFunc(func(params operations.GetRdmTypeProjectNumberParams) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetRdmTypeProjectNumber has not yet been implemented")
 		})
 	}
 	if api.PostJobHandler == nil {

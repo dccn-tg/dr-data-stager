@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os/exec"
 	"os/user"
 	"strconv"
@@ -18,8 +19,13 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/restapi/operations"
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+
+	crdr "github.com/dccn-tg/dr-gateway/pkg/swagger/client/client"
+	ordr "github.com/dccn-tg/dr-gateway/pkg/swagger/client/client/operations"
+	httptransport "github.com/go-openapi/runtime/client"
 
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
@@ -291,6 +297,68 @@ func ListDir(ctx context.Context) func(params operations.GetDirParams, principal
 	}
 }
 
+func GetCollectionByProject(ctx context.Context, cfg config.Configuration) func(params operations.GetCollectionTypeProjectNumberParams) middleware.Responder {
+	return func(params operations.GetCollectionTypeProjectNumberParams) middleware.Responder {
+
+		colls, err := getCollections(cfg, params.Type, params.Number)
+		if err != nil {
+			return operations.NewGetCollectionTypeProjectNumberInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+				},
+			)
+		}
+
+		switch len(colls) {
+		case 0:
+			return operations.NewGetCollectionTypeProjectNumberNotFound().WithPayload(
+				"collection not found",
+			)
+		case 1:
+			return operations.NewGetCollectionTypeProjectNumberOK().WithPayload(
+				colls[0],
+			)
+		default: // too many matches
+			return operations.NewGetCollectionTypeProjectNumberInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: fmt.Sprintf("more than one %s collections for project %s: %d", params.Type, params.Number, len(colls)),
+				},
+			)
+		}
+	}
+}
+
+func GetRdmByProject(ctx context.Context, cfg config.Configuration) func(params operations.GetRdmTypeProjectNumberParams) middleware.Responder {
+	return func(params operations.GetRdmTypeProjectNumberParams) middleware.Responder {
+
+		colls, err := getCollections(cfg, params.Type, params.Number)
+		if err != nil {
+			return operations.NewGetRdmTypeProjectNumberInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+				},
+			)
+		}
+
+		switch len(colls) {
+		case 0:
+			return operations.NewGetRdmTypeProjectNumberNotFound().WithPayload(
+				"collection not found",
+			)
+		case 1:
+			return operations.NewGetRdmTypeProjectNumberOK().WithPayload(
+				colls[0],
+			)
+		default: // too many matches
+			return operations.NewGetRdmTypeProjectNumberInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: fmt.Sprintf("more than one %s collections for project %s: %d", params.Type, params.Number, len(colls)),
+				},
+			)
+		}
+	}
+}
+
 // NewJobs registers the incoming transfer request as multiple stager jobs in the queue.
 func NewJobs(ctx context.Context, client *asynq.Client, rdb *redis.Client) func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
@@ -384,6 +452,56 @@ func NewJob(ctx context.Context, client *asynq.Client, rdb *redis.Client) func(p
 
 		return operations.NewPostJobOK().WithPayload(res)
 	}
+}
+
+// getCollection gets the RDR collections with type `ctype` associated with project `project`.
+func getCollections(cfg config.Configuration, ctype, project string) ([]*models.Collection, error) {
+
+	lctype := strings.ToLower(ctype)
+
+	apiURL, err := url.Parse(cfg.RdrGateway.ApiEndpoint)
+
+	if err != nil {
+		return nil, err
+	}
+
+	c := crdr.New(
+		httptransport.New(
+			apiURL.Host,
+			apiURL.Path,
+			[]string{apiURL.Scheme},
+		),
+		strfmt.Default,
+	)
+
+	params := ordr.GetCollectionsProjectIDParams{
+		ID: project,
+	}
+	params.WithTimeout(10 * time.Second)
+
+	rslt, err := c.Operations.GetCollectionsProjectID(&params)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !rslt.IsSuccess() {
+		return nil, fmt.Errorf("%s (%d)", rslt.Error(), rslt.Code())
+	}
+
+	colls := []*models.Collection{}
+	for _, m := range rslt.GetPayload().Collections {
+		if strings.ToLower(string(*m.Type)) == lctype {
+			colls = append(
+				colls,
+				&models.Collection{
+					CollName: m.Path,
+				},
+			)
+		}
+	}
+
+	return colls, nil
 }
 
 // runCmdAs spawns a new process and run the `cmd` with `args` as the `username`.

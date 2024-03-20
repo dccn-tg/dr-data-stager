@@ -238,7 +238,75 @@ paths:
         500:
           description: failure
           schema:
-            $ref: '#/definitions/responseBody500'      
+            $ref: '#/definitions/responseBody500'
+
+  /rdm/{type}/project/{number}:
+    get:
+      summary: retrieve RDR data collection associated with a project 
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: type
+          description: type of collection
+          type: string
+          enum: [dac,DAC,rdc,RDC,dsc,DSC]
+          required: true
+        - in: path
+          name: number
+          description: project number
+          type: string
+          required: true
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/collection'
+        404:
+          description: collection not found
+          schema:
+            type: string
+            enum: [collection not found]
+        500:
+          description: failure
+          schema:
+            $ref: '#/definitions/responseBody500'
+
+  /collection/{type}/project/{number}:
+    get:
+      summary: retrieve RDR data collection associated with a project 
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: type
+          description: type of collection
+          type: string
+          enum: [dac,DAC,rdc,RDC,dsc,DSC]
+          required: true
+        - in: path
+          name: number
+          description: project number
+          type: string
+          required: true
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/collection'
+        404:
+          description: collection not found
+          schema:
+            type: string
+            enum: [collection not found]
+        500:
+          description: failure
+          schema:
+            $ref: '#/definitions/responseBody500'
 
 # object definitions
 definitions:
@@ -267,6 +335,15 @@ definitions:
       errorMessage:
         description: server-side error message.
         type: string
+
+  collection:
+    description: JSON object of a RDR collection
+    properties:
+      collName:
+        description: iRODS namespace for the collection
+        type: string
+    required:
+      - collName
 
   jobInfo:
     description: JSON object containing scheduled job information.

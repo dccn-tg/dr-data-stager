@@ -24,6 +24,9 @@ doc: swagger
 api-server:
 	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o build/data-stager-api internal/api-server/main.go
 
+test_api-server:
+	@GOPATH=$(GOPATH) GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go test -count=1 -v github.com/Donders-Institute/dr-data-stager/internal/api-server/...
+
 worker:
 	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o build/data-stager-worker internal/worker/main.go
 

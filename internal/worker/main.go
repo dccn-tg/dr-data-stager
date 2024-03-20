@@ -102,7 +102,13 @@ func main() {
 // service manager/adminstrator concering the result of the processed stager task.
 func notificationMiddleware(next asynq.Handler) asynq.Handler {
 	return asynq.HandlerFunc(func(ctx context.Context, t *asynq.Task) error {
+
 		err := next.ProcessTask(ctx, t)
+
+		if err == asynq.SkipRetry {
+			log.Debugf("I want to skip retry!!")
+		}
+
 		if err == nil {
 			log.Debugf("notifying job owner on complete job")
 		} else {

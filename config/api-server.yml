@@ -4,3 +4,5 @@ auth:
 oauth2:
   jwksEndpoint: https://oauth/.well-known/openid-configuration/jwks
   userInfoEndpoint: https://oauth/connection/userinfo
+rdrgateway:
+  apiEndpoint: https://dr-gateway
