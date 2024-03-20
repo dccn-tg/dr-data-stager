@@ -62,12 +62,6 @@ var (
 	FileSystemError int64 = 104
 )
 
-// Common payload for the ResponseBody500.
-var responseNotImplemented = models.ResponseBody500{
-	ErrorMessage: "not implemented",
-	ExitCode:     NotImplementedError,
-}
-
 // GetPing returns dummy string for health check, including the authentication.
 func GetPing(cfg config.Configuration) func(params operations.GetPingParams) middleware.Responder {
 	return func(params operations.GetPingParams) middleware.Responder {
@@ -454,7 +448,7 @@ func NewJob(ctx context.Context, client *asynq.Client, rdb *redis.Client) func(p
 	}
 }
 
-// getCollection gets the RDR collections with type `ctype` associated with project `project`.
+// getCollections gets the RDR collections with type `ctype` associated with project `project`.
 func getCollections(cfg config.Configuration, ctype, project string) ([]*models.Collection, error) {
 
 	lctype := strings.ToLower(ctype)
