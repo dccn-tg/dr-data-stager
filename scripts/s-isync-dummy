@@ -1,0 +1,32 @@
+#!/bin/bash
+
+logfile=s-isync-dummy.log
+
+while getopts ":l:" opt; do
+    case ${opt} in
+    l)
+        logfile=$OPTARG
+        ;;
+    ? | *)
+        echo "unknown argument: -${OPTARG}." >&2
+        ;;
+    esac
+done
+
+shift $(( OPTIND - 1 ))
+
+echo "execute command as $(whoami), command arguments: $@" > $logfile
+
+total=1000
+echo "$total,0,0"
+
+processed=0
+## loop until processed is the same as total
+while [ $processed -lt $total ]; do
+    processed=$(($processed + 1))
+    p=$((1 + $RANDOM % 100))
+    sleep $( echo "0.01 * $p" | bc )
+
+    echo "$total,$processed,0"
+done
+
