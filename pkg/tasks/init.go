@@ -132,6 +132,9 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 	done := make(chan error, 1)
 	go func() {
 		rslt := new(StagerTaskResult)
+
+		percent := 0
+
 		for progress := range cout {
 			// stop timer
 			if !timer.Stop() {
@@ -143,9 +146,14 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 			rslt.Progress.Processed = progress.Success + progress.Failure
 			rslt.Progress.Failed = progress.Failure
 
-			log.Debugf("[%s] %d/%d processed", tid, rslt.Progress.Processed, rslt.Progress.Total)
+			npercent := int(100 * (progress.Success + progress.Failure) / progress.Total)
 
-			updateRslt(rslt)
+			log.Debugf("[%s] %d/%d (%d%%) processed", tid, rslt.Progress.Processed, rslt.Progress.Total, npercent)
+
+			if npercent > percent {
+				updateRslt(rslt)
+				percent = npercent
+			}
 
 			// reset timer
 			timer.Reset(time.Duration(p.TimeoutNoprogress) * time.Second)
@@ -231,6 +239,7 @@ func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan 
 		"-v",
 		"-c", "/etc/stager/worker.yml",
 		"-l", fmt.Sprintf("/tmp/s-isync-%s.log", tid),
+		"--task", tid,
 		"--druser", payload.DrUser,
 		"--drpass", payload.DrPass,
 		payload.SrcURL,
