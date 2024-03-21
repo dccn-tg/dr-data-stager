@@ -7,29 +7,6 @@ var router = express.Router();
 
 const auth = require("./auth");
 
-/* retrieve job detail by the given id */
-var _getJobDetail = function(id, user, pass, cb) {
-    var url = config.get('stager.restfulEndpoint') + '/job/' + id;
-    var c = new RestClient({user: user, password: pass});
-    var args = { headers: { "Accept": "application/json" } };
-    c.get(url, args, function(j, resp) {
-        console.log('stager response status: ' + resp.statusCode);
-        if ( resp.statusCode == 200 ) {
-            if ((typeof j.data !== 'undefined') &&
-                (typeof j.data.stagerUser !== 'undefined') &&
-                (j.data.stagerUser == user)) {
-                cb(j, '');
-            } else {
-                cb(null, "job not found or user doesn't own the job: " + id)
-            }
-        } else {
-            cb(null, "fail retrieving job detail: " + id + " code: " + resp.statusCode);
-        }
-    }).on('error', function(e) {
-        cb(null, e);
-    });
-}
-
 /* Get directory content for jsTree */
 router.get('/dir', auth.isAuthenticated, function(request, response) {
 
@@ -112,93 +89,6 @@ router.get('/dir', auth.isAuthenticated, function(request, response) {
     });
 });
 
-/* Get transfer-job counts from Stager */
-router.get('/job/state', function(request, response) {
-
-    var args = { headers: { "Accept": "application/json" } };
-    var sess = request.session;
-    var c = new RestClient({user: sess.user.stager,
-                            password: sess.pass.stager});
-
-    c.get(config.get('stager.restfulEndpoint') + '/stats', args, function(data, resp) {
-
-        try {
-            console.log('stager response status: ' + resp.statusCode);
-            if ( resp.statusCode == 200 ) {
-                response.status(200);
-                response.json(data);
-            } else {
-                response.status(404);
-                response.json({});
-            }
-        } catch(e) {
-            console.error(e);
-            util.responseOnError('json', {}, response);
-        }
-    }).on('error', function(e) {
-        console.error(e);
-        util.responseOnError('json', {}, response);
-    });
-});
-
-/* Get transfer jobs from stager and show only those belongs to the same user */
-router.get('/jobs/:state/:from-:to', function(request, response) {
-
-    var args = { headers: { "Accept": "application/json" } };
-    var sess = request.session;
-    var c = new RestClient({user: sess.user.stager,
-                            password: sess.pass.stager});
-
-    var jobs = {};
-    var state  = request.params.state;
-    var idx_f = request.params.from;
-    var idx_t = request.params.to;
-    var url = config.get('stager.restfulEndpoint') + '/jobs/' + state + '/' + idx_f + '..' + idx_t + '/desc';
-    c.get(url, args, function(data, resp) {
-        try {
-            console.log('stager response status: ' + resp.statusCode);
-            if ( resp.statusCode == 200 ) {
-                response.status(200);
-                jobs = data.filter( function(j) {
-                    return (typeof j.data !== 'undefined') &&
-                           (typeof j.data.stagerUser !== 'undefined') &&
-                           (j.data.stagerUser == sess.user.stager);
-                });
-                response.json(jobs);
-            } else {
-                response.status(404);
-                response.json({});
-            }
-        } catch(e) {
-            console.error(e);
-            util.responseOnError('json', {}, response);
-        }
-    }).on('error', function(e) {
-        console.error(e);
-        util.responseOnError('json', {}, response);
-    });
-});
-
-/* Get single transfer job by id */
-router.get('/job/:id', function(request, response) {
-    var sess = request.session;
-    try {
-        _getJobDetail(request.params.id, sess.user.stager, sess.pass.stager, function(job, error) {
-            if (error) {
-                console.error(error);
-                util.responseOnError('json', {}, response);
-            }
-            response.status(200);
-            response.json(job);
-        });
-    } catch(e) {
-        console.error(e);
-        util.responseOnError('json', {}, response);
-    }
-});
-
-
-
 /* Start or restart a stopped job */
 router.put('/job/:id/state/inactive', function(request, response) {
     var sess = request.session;
@@ -206,27 +96,39 @@ router.put('/job/:id/state/inactive', function(request, response) {
                             password: sess.pass.stager});                        
     // get the job to check if the job is owned by the stager users
     try {
-        _getJobDetail(request.params.id, sess.user.stager, sess.pass.stager, function(job, error) {
-            if (error) {
-                console.error(e);
-                util.responseOnError('json', {}, response);
-            }
-            var url = config.get('stager.restfulEndpoint') + '/job/' + request.params.id + '/state/inactive';
-            var args = { headers: { "Accept": "application/json" } };
-            var req = c.put(url, args, function(msg, resp) {
-                console.log('stager response status: ' + resp.statusCode);
-                if ( resp.statusCode == 200 ) {
-                    response.json(msg);
-                } else {
-                    response.status(404);
-                    response.json({});
-                }            
-            });
-        });
+
     } catch(e) {
         console.error(e);
         util.responseOnError('json', {}, response);
     }    
+});
+
+/* Get single transfer job by id */
+router.get('/job/:id', auth.isAuthenticated, function(request, response) {
+
+    var args = { headers: { "Accept": "application/json" } };
+    var c = new RestClient({
+        user: request.user.username,
+        password: request.user.token
+    });
+
+    var url = config.get('stager.restfulEndpoint') + '/job/' + request.params.id;
+
+    c.get(url, args, function(data, resp) {
+        if ( resp.statusCode == 200 ) {
+            response.status(200);
+            response.json(data);
+        } else {
+            console.log('api-server response status: ' + resp.statusCode);
+            response.status(resp.statusCode);
+            response.json({
+                message: resp.statusMessage
+            });
+        }
+    }).on('error', function(e) {
+        console.error(e);
+        util.responseOnError('json', {}, response);
+    });
 });
 
 /* Submit transfer jobs to stager */
@@ -271,18 +173,13 @@ router.post('/jobs', auth.isAuthenticated, function(request, response) {
 
         var url = config.get('stager.restfulEndpoint') + '/jobs';
         c.post(url, args, function(data, resp) {
-            try {
-                if ( resp.statusCode == 200 ) {
-                    response.status(200);
-                    response.json(data.jobs);
-                } else {
-                    console.error('api-server response status: ' + resp.statusCode);
-                    response.status(resp.statusCode);
-                    response.json([]);
-                }
-            } catch(e) {
-                console.error(e);
-                util.responseOnError('json', [], response);
+            if ( resp.statusCode == 200 ) {
+                response.status(200);
+                response.json(data.jobs);
+            } else {
+                console.error('api-server response status: ' + resp.statusCode);
+                response.status(resp.statusCode);
+                response.json([]);
             }
         }).on('error', function(e) {
             console.error(e);
