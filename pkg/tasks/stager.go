@@ -30,9 +30,6 @@ var (
 		"default":  3,
 		"low":      1,
 	}
-	EmailerQueues = map[string]int{
-		"default": 3,
-	}
 )
 
 // StagerPayload defines the data structure of the stager file transfer payload.
