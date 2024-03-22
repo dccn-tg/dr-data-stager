@@ -47,8 +47,8 @@ func NewDrDataStagerAPI(spec *loads.Document) *DrDataStagerAPI {
 		DeleteJobIDHandler: DeleteJobIDHandlerFunc(func(params DeleteJobIDParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation DeleteJobID has not yet been implemented")
 		}),
-		GetCollectionTypeProjectNumberHandler: GetCollectionTypeProjectNumberHandlerFunc(func(params GetCollectionTypeProjectNumberParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetCollectionTypeProjectNumber has not yet been implemented")
+		GetDacProjectNumberHandler: GetDacProjectNumberHandlerFunc(func(params GetDacProjectNumberParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetDacProjectNumber has not yet been implemented")
 		}),
 		GetDirHandler: GetDirHandlerFunc(func(params GetDirParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation GetDir has not yet been implemented")
@@ -130,8 +130,8 @@ type DrDataStagerAPI struct {
 
 	// DeleteJobIDHandler sets the operation handler for the delete job ID operation
 	DeleteJobIDHandler DeleteJobIDHandler
-	// GetCollectionTypeProjectNumberHandler sets the operation handler for the get collection type project number operation
-	GetCollectionTypeProjectNumberHandler GetCollectionTypeProjectNumberHandler
+	// GetDacProjectNumberHandler sets the operation handler for the get dac project number operation
+	GetDacProjectNumberHandler GetDacProjectNumberHandler
 	// GetDirHandler sets the operation handler for the get dir operation
 	GetDirHandler GetDirHandler
 	// GetJobIDHandler sets the operation handler for the get job ID operation
@@ -233,8 +233,8 @@ func (o *DrDataStagerAPI) Validate() error {
 	if o.DeleteJobIDHandler == nil {
 		unregistered = append(unregistered, "DeleteJobIDHandler")
 	}
-	if o.GetCollectionTypeProjectNumberHandler == nil {
-		unregistered = append(unregistered, "GetCollectionTypeProjectNumberHandler")
+	if o.GetDacProjectNumberHandler == nil {
+		unregistered = append(unregistered, "GetDacProjectNumberHandler")
 	}
 	if o.GetDirHandler == nil {
 		unregistered = append(unregistered, "GetDirHandler")
@@ -367,7 +367,7 @@ func (o *DrDataStagerAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/collection/{type}/project/{number}"] = NewGetCollectionTypeProjectNumber(o.context, o.GetCollectionTypeProjectNumberHandler)
+	o.handlers["GET"]["/dac/project/{number}"] = NewGetDacProjectNumber(o.context, o.GetDacProjectNumberHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -207,7 +207,7 @@ func main() {
 	api.PostJobsHandler = operations.PostJobsHandlerFunc(handler.NewJobs(ctx, client, rdb4tid))
 	api.GetJobsHandler = operations.GetJobsHandlerFunc(handler.GetJobs(ctx, inspector))
 	api.GetDirHandler = operations.GetDirHandlerFunc(handler.ListDir(ctx))
-	api.GetCollectionTypeProjectNumberHandler = operations.GetCollectionTypeProjectNumberHandlerFunc(handler.GetCollectionByProject(ctx, cfg))
+	api.GetDacProjectNumberHandler = operations.GetDacProjectNumberHandlerFunc(handler.GetDacByProject(ctx, cfg))
 	// configure API
 	server.ConfigureAPI()
 

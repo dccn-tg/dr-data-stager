@@ -12,10 +12,9 @@ import (
 	"strings"
 )
 
-// GetCollectionTypeProjectNumberURL generates an URL for the get collection type project number operation
-type GetCollectionTypeProjectNumberURL struct {
+// GetDacProjectNumberURL generates an URL for the get dac project number operation
+type GetDacProjectNumberURL struct {
 	Number string
-	Type   string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -25,7 +24,7 @@ type GetCollectionTypeProjectNumberURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *GetCollectionTypeProjectNumberURL) WithBasePath(bp string) *GetCollectionTypeProjectNumberURL {
+func (o *GetDacProjectNumberURL) WithBasePath(bp string) *GetDacProjectNumberURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -33,28 +32,21 @@ func (o *GetCollectionTypeProjectNumberURL) WithBasePath(bp string) *GetCollecti
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *GetCollectionTypeProjectNumberURL) SetBasePath(bp string) {
+func (o *GetDacProjectNumberURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *GetCollectionTypeProjectNumberURL) Build() (*url.URL, error) {
+func (o *GetDacProjectNumberURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/collection/{type}/project/{number}"
+	var _path = "/dac/project/{number}"
 
 	number := o.Number
 	if number != "" {
 		_path = strings.Replace(_path, "{number}", number, -1)
 	} else {
-		return nil, errors.New("number is required on GetCollectionTypeProjectNumberURL")
-	}
-
-	typeVar := o.Type
-	if typeVar != "" {
-		_path = strings.Replace(_path, "{type}", typeVar, -1)
-	} else {
-		return nil, errors.New("type is required on GetCollectionTypeProjectNumberURL")
+		return nil, errors.New("number is required on GetDacProjectNumberURL")
 	}
 
 	_basePath := o._basePath
@@ -67,7 +59,7 @@ func (o *GetCollectionTypeProjectNumberURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *GetCollectionTypeProjectNumberURL) Must(u *url.URL, err error) *url.URL {
+func (o *GetDacProjectNumberURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -78,17 +70,17 @@ func (o *GetCollectionTypeProjectNumberURL) Must(u *url.URL, err error) *url.URL
 }
 
 // String returns the string representation of the path with query string
-func (o *GetCollectionTypeProjectNumberURL) String() string {
+func (o *GetDacProjectNumberURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *GetCollectionTypeProjectNumberURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *GetDacProjectNumberURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on GetCollectionTypeProjectNumberURL")
+		return nil, errors.New("scheme is required for a full url on GetDacProjectNumberURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on GetCollectionTypeProjectNumberURL")
+		return nil, errors.New("host is required for a full url on GetDacProjectNumberURL")
 	}
 
 	base, err := o.Build()
@@ -102,6 +94,6 @@ func (o *GetCollectionTypeProjectNumberURL) BuildFull(scheme, host string) (*url
 }
 
 // StringFull returns the string representation of a complete url
-func (o *GetCollectionTypeProjectNumberURL) StringFull(scheme, host string) string {
+func (o *GetDacProjectNumberURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

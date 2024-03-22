@@ -286,24 +286,22 @@ func ListDir(ctx context.Context) func(params operations.GetDirParams, principal
 	}
 }
 
-func GetCollectionByProject(ctx context.Context, cfg config.Configuration) func(params operations.GetCollectionTypeProjectNumberParams) middleware.Responder {
-	return func(params operations.GetCollectionTypeProjectNumberParams) middleware.Responder {
+func GetDacByProject(ctx context.Context, cfg config.Configuration) func(params operations.GetDacProjectNumberParams) middleware.Responder {
+	return func(params operations.GetDacProjectNumberParams) middleware.Responder {
 
-		if strings.ToLower(params.Type) == "dac" {
-			// the project-collection mapping from PPM should take precedence
-			collName := utility.GetDacOfProject(params.Number)
-			if collName != "" {
-				return operations.NewGetCollectionTypeProjectNumberOK().WithPayload(
-					&models.Collection{
-						CollName: &collName,
-					},
-				)
-			}
+		// the project-collection mapping from PPM should take precedence
+		collName := utility.GetDacOfProject(params.Number)
+		if collName != "" {
+			return operations.NewGetDacProjectNumberOK().WithPayload(
+				&models.Collection{
+					CollName: &collName,
+				},
+			)
 		}
 
-		colls, err := utility.GetCollections(cfg.RdrGateway, params.Type, params.Number)
+		colls, err := utility.GetCollections(cfg.RdrGateway, "DAC", params.Number)
 		if err != nil {
-			return operations.NewGetCollectionTypeProjectNumberInternalServerError().WithPayload(
+			return operations.NewGetDacProjectNumberInternalServerError().WithPayload(
 				&models.ResponseBody500{
 					ErrorMessage: err.Error(),
 				},
@@ -312,19 +310,19 @@ func GetCollectionByProject(ctx context.Context, cfg config.Configuration) func(
 
 		switch len(colls) {
 		case 0:
-			return operations.NewGetCollectionTypeProjectNumberNotFound().WithPayload(
+			return operations.NewGetDacProjectNumberNotFound().WithPayload(
 				"collection not found",
 			)
 		case 1:
-			return operations.NewGetCollectionTypeProjectNumberOK().WithPayload(
+			return operations.NewGetDacProjectNumberOK().WithPayload(
 				&models.Collection{
 					CollName: &colls[0],
 				},
 			)
 		default: // too many matches
-			return operations.NewGetCollectionTypeProjectNumberInternalServerError().WithPayload(
+			return operations.NewGetDacProjectNumberInternalServerError().WithPayload(
 				&models.ResponseBody500{
-					ErrorMessage: fmt.Sprintf("more than one %s collections for project %s: %d", params.Type, params.Number, len(colls)),
+					ErrorMessage: fmt.Sprintf("more than one DAC for project %s: %d", params.Number, len(colls)),
 				},
 			)
 		}

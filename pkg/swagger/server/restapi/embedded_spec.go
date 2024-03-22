@@ -26,7 +26,7 @@ func init() {
   },
   "basePath": "/v1",
   "paths": {
-    "/collection/{type}/project/{number}": {
+    "/dac/project/{number}": {
       "get": {
         "consumes": [
           "application/json"
@@ -34,23 +34,8 @@ func init() {
         "produces": [
           "application/json"
         ],
-        "summary": "retrieve RDR data collection associated with a project",
+        "summary": "retrieve the Data Acquisition Collection associated with a project",
         "parameters": [
-          {
-            "enum": [
-              "dac",
-              "DAC",
-              "rdc",
-              "RDC",
-              "dsc",
-              "DSC"
-            ],
-            "type": "string",
-            "description": "type of collection",
-            "name": "type",
-            "in": "path",
-            "required": true
-          },
           {
             "type": "string",
             "description": "project number",
@@ -758,7 +743,7 @@ func init() {
   },
   "basePath": "/v1",
   "paths": {
-    "/collection/{type}/project/{number}": {
+    "/dac/project/{number}": {
       "get": {
         "consumes": [
           "application/json"
@@ -766,23 +751,8 @@ func init() {
         "produces": [
           "application/json"
         ],
-        "summary": "retrieve RDR data collection associated with a project",
+        "summary": "retrieve the Data Acquisition Collection associated with a project",
         "parameters": [
-          {
-            "enum": [
-              "dac",
-              "DAC",
-              "rdc",
-              "RDC",
-              "dsc",
-              "DSC"
-            ],
-            "type": "string",
-            "description": "type of collection",
-            "name": "type",
-            "in": "path",
-            "required": true
-          },
           {
             "type": "string",
             "description": "project number",

@@ -32,7 +32,7 @@ type ClientOption func(*runtime.ClientOperation)
 type ClientService interface {
 	DeleteJobID(params *DeleteJobIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteJobIDOK, error)
 
-	GetCollectionTypeProjectNumber(params *GetCollectionTypeProjectNumberParams, opts ...ClientOption) (*GetCollectionTypeProjectNumberOK, error)
+	GetDacProjectNumber(params *GetDacProjectNumberParams, opts ...ClientOption) (*GetDacProjectNumberOK, error)
 
 	GetDir(params *GetDirParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetDirOK, error)
 
@@ -91,22 +91,22 @@ func (a *Client) DeleteJobID(params *DeleteJobIDParams, authInfo runtime.ClientA
 }
 
 /*
-GetCollectionTypeProjectNumber retrieves r d r data collection associated with a project
+GetDacProjectNumber retrieves the data acquisition collection associated with a project
 */
-func (a *Client) GetCollectionTypeProjectNumber(params *GetCollectionTypeProjectNumberParams, opts ...ClientOption) (*GetCollectionTypeProjectNumberOK, error) {
+func (a *Client) GetDacProjectNumber(params *GetDacProjectNumberParams, opts ...ClientOption) (*GetDacProjectNumberOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetCollectionTypeProjectNumberParams()
+		params = NewGetDacProjectNumberParams()
 	}
 	op := &runtime.ClientOperation{
-		ID:                 "GetCollectionTypeProjectNumber",
+		ID:                 "GetDacProjectNumber",
 		Method:             "GET",
-		PathPattern:        "/collection/{type}/project/{number}",
+		PathPattern:        "/dac/project/{number}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"https"},
 		Params:             params,
-		Reader:             &GetCollectionTypeProjectNumberReader{formats: a.formats},
+		Reader:             &GetDacProjectNumberReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	}
@@ -118,13 +118,13 @@ func (a *Client) GetCollectionTypeProjectNumber(params *GetCollectionTypeProject
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*GetCollectionTypeProjectNumberOK)
+	success, ok := result.(*GetDacProjectNumberOK)
 	if ok {
 		return success, nil
 	}
 	// unexpected success response
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for GetCollectionTypeProjectNumber: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	msg := fmt.Sprintf("unexpected success response for GetDacProjectNumber: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 

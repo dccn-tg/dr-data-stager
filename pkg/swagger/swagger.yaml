@@ -240,20 +240,14 @@ paths:
           schema:
             $ref: '#/definitions/responseBody500'
 
-  /collection/{type}/project/{number}:
+  /dac/project/{number}:
     get:
-      summary: retrieve RDR data collection associated with a project 
+      summary: retrieve the Data Acquisition Collection associated with a project 
       consumes:
         - application/json
       produces:
         - application/json
       parameters:
-        - in: path
-          name: type
-          description: type of collection
-          type: string
-          enum: [dac,DAC,rdc,RDC,dsc,DSC]
-          required: true
         - in: path
           name: number
           description: project number

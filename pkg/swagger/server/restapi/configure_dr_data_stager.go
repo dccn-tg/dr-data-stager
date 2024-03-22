@@ -61,9 +61,9 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.DeleteJobID has not yet been implemented")
 		})
 	}
-	if api.GetCollectionTypeProjectNumberHandler == nil {
-		api.GetCollectionTypeProjectNumberHandler = operations.GetCollectionTypeProjectNumberHandlerFunc(func(params operations.GetCollectionTypeProjectNumberParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetCollectionTypeProjectNumber has not yet been implemented")
+	if api.GetDacProjectNumberHandler == nil {
+		api.GetDacProjectNumberHandler = operations.GetDacProjectNumberHandlerFunc(func(params operations.GetDacProjectNumberParams) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetDacProjectNumber has not yet been implemented")
 		})
 	}
 	if api.GetDirHandler == nil {
