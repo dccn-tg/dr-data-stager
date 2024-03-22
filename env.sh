@@ -18,3 +18,7 @@ WORKER_CONFIG=./config/worker.yml
 
 # iCAT server certificate for secured iRODS communications
 IRODS_ICAT_CERT=./docker/worker/icat-prod.pem
+
+# crypto key pair for DR credential en/de-cryption
+CRYPTO_RSA_PUBLIC=./config/public.pem
+CRYPTO_RSA_PRIVATE=./config/keypair.pem
