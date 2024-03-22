@@ -91,11 +91,6 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.GetPing has not yet been implemented")
 		})
 	}
-	if api.GetRdmTypeProjectNumberHandler == nil {
-		api.GetRdmTypeProjectNumberHandler = operations.GetRdmTypeProjectNumberHandlerFunc(func(params operations.GetRdmTypeProjectNumberParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetRdmTypeProjectNumber has not yet been implemented")
-		})
-	}
 	if api.PostJobHandler == nil {
 		api.PostJobHandler = operations.PostJobHandlerFunc(func(params operations.PostJobParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation operations.PostJob has not yet been implemented")

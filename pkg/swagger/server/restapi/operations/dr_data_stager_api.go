@@ -65,9 +65,6 @@ func NewDrDataStagerAPI(spec *loads.Document) *DrDataStagerAPI {
 		GetPingHandler: GetPingHandlerFunc(func(params GetPingParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetPing has not yet been implemented")
 		}),
-		GetRdmTypeProjectNumberHandler: GetRdmTypeProjectNumberHandlerFunc(func(params GetRdmTypeProjectNumberParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetRdmTypeProjectNumber has not yet been implemented")
-		}),
 		PostJobHandler: PostJobHandlerFunc(func(params PostJobParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation PostJob has not yet been implemented")
 		}),
@@ -145,8 +142,6 @@ type DrDataStagerAPI struct {
 	GetJobsStatusHandler GetJobsStatusHandler
 	// GetPingHandler sets the operation handler for the get ping operation
 	GetPingHandler GetPingHandler
-	// GetRdmTypeProjectNumberHandler sets the operation handler for the get rdm type project number operation
-	GetRdmTypeProjectNumberHandler GetRdmTypeProjectNumberHandler
 	// PostJobHandler sets the operation handler for the post job operation
 	PostJobHandler PostJobHandler
 	// PostJobsHandler sets the operation handler for the post jobs operation
@@ -255,9 +250,6 @@ func (o *DrDataStagerAPI) Validate() error {
 	}
 	if o.GetPingHandler == nil {
 		unregistered = append(unregistered, "GetPingHandler")
-	}
-	if o.GetRdmTypeProjectNumberHandler == nil {
-		unregistered = append(unregistered, "GetRdmTypeProjectNumberHandler")
 	}
 	if o.PostJobHandler == nil {
 		unregistered = append(unregistered, "PostJobHandler")
@@ -396,10 +388,6 @@ func (o *DrDataStagerAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/ping"] = NewGetPing(o.context, o.GetPingHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/rdm/{type}/project/{number}"] = NewGetRdmTypeProjectNumber(o.context, o.GetRdmTypeProjectNumberHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

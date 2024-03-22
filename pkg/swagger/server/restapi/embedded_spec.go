@@ -461,64 +461,6 @@ func init() {
           }
         }
       }
-    },
-    "/rdm/{type}/project/{number}": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "summary": "retrieve RDR data collection associated with a project",
-        "parameters": [
-          {
-            "enum": [
-              "dac",
-              "DAC",
-              "rdc",
-              "RDC",
-              "dsc",
-              "DSC"
-            ],
-            "type": "string",
-            "description": "type of collection",
-            "name": "type",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "project number",
-            "name": "number",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "success",
-            "schema": {
-              "$ref": "#/definitions/collection"
-            }
-          },
-          "404": {
-            "description": "collection not found",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "collection not found"
-              ]
-            }
-          },
-          "500": {
-            "description": "failure",
-            "schema": {
-              "$ref": "#/definitions/responseBody500"
-            }
-          }
-        }
-      }
     }
   },
   "definitions": {
@@ -1240,64 +1182,6 @@ func init() {
               "type": "string",
               "enum": [
                 "pong"
-              ]
-            }
-          },
-          "500": {
-            "description": "failure",
-            "schema": {
-              "$ref": "#/definitions/responseBody500"
-            }
-          }
-        }
-      }
-    },
-    "/rdm/{type}/project/{number}": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "summary": "retrieve RDR data collection associated with a project",
-        "parameters": [
-          {
-            "enum": [
-              "dac",
-              "DAC",
-              "rdc",
-              "RDC",
-              "dsc",
-              "DSC"
-            ],
-            "type": "string",
-            "description": "type of collection",
-            "name": "type",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "project number",
-            "name": "number",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "success",
-            "schema": {
-              "$ref": "#/definitions/collection"
-            }
-          },
-          "404": {
-            "description": "collection not found",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "collection not found"
               ]
             }
           },

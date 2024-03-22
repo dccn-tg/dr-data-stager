@@ -208,7 +208,6 @@ func main() {
 	api.GetJobsHandler = operations.GetJobsHandlerFunc(handler.GetJobs(ctx, inspector))
 	api.GetDirHandler = operations.GetDirHandlerFunc(handler.ListDir(ctx))
 	api.GetCollectionTypeProjectNumberHandler = operations.GetCollectionTypeProjectNumberHandlerFunc(handler.GetCollectionByProject(ctx, cfg))
-	api.GetRdmTypeProjectNumberHandler = operations.GetRdmTypeProjectNumberHandlerFunc(handler.GetRdmByProject(ctx, cfg))
 	// configure API
 	server.ConfigureAPI()
 

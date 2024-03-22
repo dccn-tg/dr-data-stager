@@ -44,8 +44,6 @@ type ClientService interface {
 
 	GetPing(params *GetPingParams, opts ...ClientOption) (*GetPingOK, error)
 
-	GetRdmTypeProjectNumber(params *GetRdmTypeProjectNumberParams, opts ...ClientOption) (*GetRdmTypeProjectNumberOK, error)
-
 	PostJob(params *PostJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostJobOK, error)
 
 	PostJobs(params *PostJobsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostJobsOK, *PostJobsMultiStatus, error)
@@ -321,44 +319,6 @@ func (a *Client) GetPing(params *GetPingParams, opts ...ClientOption) (*GetPingO
 	// unexpected success response
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
 	msg := fmt.Sprintf("unexpected success response for GetPing: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
-}
-
-/*
-GetRdmTypeProjectNumber retrieves r d r data collection associated with a project
-*/
-func (a *Client) GetRdmTypeProjectNumber(params *GetRdmTypeProjectNumberParams, opts ...ClientOption) (*GetRdmTypeProjectNumberOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRdmTypeProjectNumberParams()
-	}
-	op := &runtime.ClientOperation{
-		ID:                 "GetRdmTypeProjectNumber",
-		Method:             "GET",
-		PathPattern:        "/rdm/{type}/project/{number}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &GetRdmTypeProjectNumberReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*GetRdmTypeProjectNumberOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for GetRdmTypeProjectNumber: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 

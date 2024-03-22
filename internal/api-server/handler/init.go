@@ -331,51 +331,6 @@ func GetCollectionByProject(ctx context.Context, cfg config.Configuration) func(
 	}
 }
 
-func GetRdmByProject(ctx context.Context, cfg config.Configuration) func(params operations.GetRdmTypeProjectNumberParams) middleware.Responder {
-	return func(params operations.GetRdmTypeProjectNumberParams) middleware.Responder {
-
-		if strings.ToLower(params.Type) == "dac" {
-			// the project-collection mapping from PPM should take precedence
-			collName := utility.GetDacOfProject(params.Number)
-			if collName != "" {
-				return operations.NewGetCollectionTypeProjectNumberOK().WithPayload(
-					&models.Collection{
-						CollName: &collName,
-					},
-				)
-			}
-		}
-
-		colls, err := utility.GetCollections(cfg.RdrGateway, params.Type, params.Number)
-		if err != nil {
-			return operations.NewGetRdmTypeProjectNumberInternalServerError().WithPayload(
-				&models.ResponseBody500{
-					ErrorMessage: err.Error(),
-				},
-			)
-		}
-
-		switch len(colls) {
-		case 0:
-			return operations.NewGetRdmTypeProjectNumberNotFound().WithPayload(
-				"collection not found",
-			)
-		case 1:
-			return operations.NewGetRdmTypeProjectNumberOK().WithPayload(
-				&models.Collection{
-					CollName: &colls[0],
-				},
-			)
-		default: // too many matches
-			return operations.NewGetRdmTypeProjectNumberInternalServerError().WithPayload(
-				&models.ResponseBody500{
-					ErrorMessage: fmt.Sprintf("more than one %s collections for project %s: %d", params.Type, params.Number, len(colls)),
-				},
-			)
-		}
-	}
-}
-
 // NewJobs registers the incoming transfer request as multiple stager jobs in the queue.
 func NewJobs(ctx context.Context, client *asynq.Client, rdb *redis.Client) func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
 	return func(params operations.PostJobsParams, principal *models.Principal) middleware.Responder {
