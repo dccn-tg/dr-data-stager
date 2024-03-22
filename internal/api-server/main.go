@@ -15,6 +15,7 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
 	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/restapi"
 	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/restapi/operations"
+	"github.com/Donders-Institute/dr-data-stager/pkg/utility"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
@@ -104,6 +105,9 @@ func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
+	// launch backend process to fetch DCC DACs from the online PPM form
+	go utility.UpdatePpmDacs(ctx, cfg.PpmForm, 3600*time.Second, cfg.Dacs)
+
 	// actions to take when the main program exists.
 	defer func() {
 
@@ -134,7 +138,7 @@ func main() {
 	// authentication with username/password.
 	api.BasicAuthAuth = func(username, password string) (*models.Principal, error) {
 
-		pass, ok := cfg.Auth[username]
+		pass, ok := cfg.Auth.Basic[username]
 
 		if ok && pass == password {
 			principal := models.Principal(username)
@@ -142,7 +146,7 @@ func main() {
 		}
 
 		// username not in the static credential list, assuming that the password is a oauth2 access token
-		token, err := verifyJwt(password, cfg.Oauth2.JwksEndpoint)
+		token, err := verifyJwt(password, cfg.Auth.Oauth2.JwksEndpoint)
 		if err != nil || !token.Valid {
 			return nil, errors.New(401, "invalid token: %s", err)
 		}
@@ -155,7 +159,7 @@ func main() {
 	// authentication with oauth2 token.
 	api.Oauth2Auth = func(tokenStr string, scopes []string) (*models.Principal, error) {
 
-		token, err := verifyJwt(tokenStr, cfg.Oauth2.JwksEndpoint)
+		token, err := verifyJwt(tokenStr, cfg.Auth.Oauth2.JwksEndpoint)
 
 		if err != nil || !token.Valid {
 			return nil, errors.New(401, "invalid token: %s", err)
@@ -186,7 +190,7 @@ func main() {
 		// retrieve user profile if "urn:dccn:identity:uid" in the scopes of the token
 		// use "urn:dccn:uid" of the profile as the principal.
 		if hasScope(claims.Scope, "urn:dccn:identity:uid") {
-			uinfo, err := oauth2GetUserInfo(tokenStr, cfg.Oauth2.UserInfoEndpoint)
+			uinfo, err := oauth2GetUserInfo(tokenStr, cfg.Auth.Oauth2.UserInfoEndpoint)
 			if err != nil {
 				return nil, errors.New(401, "cannot get userinfo: %s", err)
 			}

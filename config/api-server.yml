@@ -1,8 +1,16 @@
 auth:
-  demo: demo123
-  admin: admin
-oauth2:
-  jwksEndpoint: https://oauth/.well-known/openid-configuration/jwks
-  userInfoEndpoint: https://oauth/connection/userinfo
-rdrgateway:
+  basic:
+    demo: demo123
+    admin: admin
+  oauth2:
+    jwksEndpoint: https://oauth/.well-known/openid-configuration/jwks
+    userInfoEndpoint: https://oauth/connection/userinfo
+rdrGateway:
   apiEndpoint: https://dr-gateway
+ppmForm:
+  clientID: id
+  clientSecret: secret
+  authURL: https://oauth
+  apiEndpoint: https://ppmform
+dacs:
+  "3010000.01": "/zone/o/ou/DAC_3010000.01_123"
