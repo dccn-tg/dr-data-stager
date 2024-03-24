@@ -115,7 +115,7 @@ func notificationMiddleware(next asynq.Handler) asynq.Handler {
 			retried, _ := asynq.GetRetryCount(ctx)
 			maxRetry, _ := asynq.GetMaxRetry(ctx)
 			if retried >= maxRetry {
-				log.Debugf("reporting job failure")
+				log.Debugf("notifying job owner and admin on failure")
 			}
 		}
 		return err

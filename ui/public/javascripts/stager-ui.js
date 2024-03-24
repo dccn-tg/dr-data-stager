@@ -464,19 +464,38 @@ function deleteJob(id) {
 }
 
 /**
- * Perform start or restart on a job.
+ * Perform start or restart on an existing job.
  * @param {string} id - the job id
  */
 function startJob(id) {
-    var url = "/stager/job/" + id + '/state/inactive';
+    var url = "/stager/job/scheduled/" + id;
     $.ajax(url, {
         type: 'PUT',
         success: function(data) {
             if ( data.message ) { showAppInfo(data.message); }
-            refreshJob(id);
+            // update the job detail in the jobsData array
+            var idx = jobsData.map(function(j) { return j.id; }).indexOf(id);
+            if ( idx >= 0 ) {
+                jobsData[idx] = data;
+
+                // refresh the jobsTable
+                jobTable.ajax.reload();
+                
+                // find the row referred with the job id
+                var row = jobTable.row( function(idx, data, node) {
+                    return data.id == id;
+                });
+
+                if ( row ) {
+                    row.child.hide();
+                    $(row.node()).removeClass('shown');
+                    row.child( formatJobDetail(data) ).show();
+                    $(row.node()).addClass('shown');
+                }
+            }
         },
         error: function(xhr, status, error) {
-            showAppError('Job deletion failed: ' + id + ' status: ' + status + ' error: ' + error);
+            showAppError('Job restart failed: ' + id + ' status: ' + status + ' error: ' + error);
         }
     });
 }

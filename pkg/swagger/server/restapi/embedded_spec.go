@@ -161,6 +161,65 @@ func init() {
         }
       }
     },
+    "/job/scheduled/{id}": {
+      "put": {
+        "security": [
+          {
+            "oauth2": [
+              "urn:dccn:data-stager-api:*"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "reschedule a job in completed or archived state",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "job id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/jobInfo"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "404": {
+            "description": "job not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "job not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/job/{id}": {
       "get": {
         "security": [
@@ -194,12 +253,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/jobInfo"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
             }
           },
           "404": {
@@ -251,12 +304,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/jobInfo"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
             }
           },
           "404": {
@@ -384,11 +431,12 @@ func init() {
         "parameters": [
           {
             "enum": [
-              "waiting",
-              "processing",
-              "failed",
-              "succeeded",
-              "canceled"
+              "scheduled",
+              "pending",
+              "active",
+              "retry",
+              "completed",
+              "archived"
             ],
             "type": "string",
             "description": "job status",
@@ -402,12 +450,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/responseBodyJobs"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
             }
           },
           "500": {
@@ -624,11 +666,12 @@ func init() {
           "description": "job status from the last execution.",
           "type": "string",
           "enum": [
-            "waiting",
-            "processing",
-            "failed",
-            "succeeded",
-            "canceled"
+            "scheduled",
+            "pending",
+            "active",
+            "retry",
+            "completed",
+            "archived"
           ]
         }
       }
@@ -672,15 +715,6 @@ func init() {
           "items": {
             "$ref": "#/definitions/jobData"
           }
-        }
-      }
-    },
-    "responseBody400": {
-      "description": "JSON object containing error message concerning bad client request.",
-      "properties": {
-        "errorMessage": {
-          "description": "error message specifying the bad request.",
-          "type": "string"
         }
       }
     },
@@ -878,6 +912,65 @@ func init() {
         }
       }
     },
+    "/job/scheduled/{id}": {
+      "put": {
+        "security": [
+          {
+            "oauth2": [
+              "urn:dccn:data-stager-api:*"
+            ]
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "reschedule a job in completed or archived state",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "job id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/jobInfo"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "404": {
+            "description": "job not found",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "job not found"
+              ]
+            }
+          },
+          "500": {
+            "description": "failure",
+            "schema": {
+              "$ref": "#/definitions/responseBody500"
+            }
+          }
+        }
+      }
+    },
     "/job/{id}": {
       "get": {
         "security": [
@@ -911,12 +1004,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/jobInfo"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
             }
           },
           "404": {
@@ -968,12 +1055,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/jobInfo"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
             }
           },
           "404": {
@@ -1101,11 +1182,12 @@ func init() {
         "parameters": [
           {
             "enum": [
-              "waiting",
-              "processing",
-              "failed",
-              "succeeded",
-              "canceled"
+              "scheduled",
+              "pending",
+              "active",
+              "retry",
+              "completed",
+              "archived"
             ],
             "type": "string",
             "description": "job status",
@@ -1119,12 +1201,6 @@ func init() {
             "description": "success",
             "schema": {
               "$ref": "#/definitions/responseBodyJobs"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/responseBody400"
             }
           },
           "500": {
@@ -1341,11 +1417,12 @@ func init() {
           "description": "job status from the last execution.",
           "type": "string",
           "enum": [
-            "waiting",
-            "processing",
-            "failed",
-            "succeeded",
-            "canceled"
+            "scheduled",
+            "pending",
+            "active",
+            "retry",
+            "completed",
+            "archived"
           ]
         }
       }
@@ -1389,15 +1466,6 @@ func init() {
           "items": {
             "$ref": "#/definitions/jobData"
           }
-        }
-      }
-    },
-    "responseBody400": {
-      "description": "JSON object containing error message concerning bad client request.",
-      "properties": {
-        "errorMessage": {
-          "description": "error message specifying the bad request.",
-          "type": "string"
         }
       }
     },

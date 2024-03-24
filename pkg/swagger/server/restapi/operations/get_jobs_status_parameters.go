@@ -78,7 +78,7 @@ func (o *GetJobsStatusParams) bindStatus(rawData []string, hasKey bool, formats 
 // validateStatus carries on validations for parameter Status
 func (o *GetJobsStatusParams) validateStatus(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("status", "path", o.Status, []interface{}{"waiting", "processing", "failed", "succeeded", "canceled"}, true); err != nil {
+	if err := validate.EnumCase("status", "path", o.Status, []interface{}{"scheduled", "pending", "active", "retry", "completed", "archived"}, true); err != nil {
 		return err
 	}
 

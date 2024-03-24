@@ -29,12 +29,6 @@ func (o *DeleteJobIDReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewDeleteJobIDBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 404:
 		result := NewDeleteJobIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -111,74 +105,6 @@ func (o *DeleteJobIDOK) GetPayload() *models.JobInfo {
 func (o *DeleteJobIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.JobInfo)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewDeleteJobIDBadRequest creates a DeleteJobIDBadRequest with default headers values
-func NewDeleteJobIDBadRequest() *DeleteJobIDBadRequest {
-	return &DeleteJobIDBadRequest{}
-}
-
-/*
-DeleteJobIDBadRequest describes a response with status code 400, with default header values.
-
-bad request
-*/
-type DeleteJobIDBadRequest struct {
-	Payload *models.ResponseBody400
-}
-
-// IsSuccess returns true when this delete job Id bad request response has a 2xx status code
-func (o *DeleteJobIDBadRequest) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this delete job Id bad request response has a 3xx status code
-func (o *DeleteJobIDBadRequest) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this delete job Id bad request response has a 4xx status code
-func (o *DeleteJobIDBadRequest) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this delete job Id bad request response has a 5xx status code
-func (o *DeleteJobIDBadRequest) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this delete job Id bad request response a status code equal to that given
-func (o *DeleteJobIDBadRequest) IsCode(code int) bool {
-	return code == 400
-}
-
-// Code gets the status code for the delete job Id bad request response
-func (o *DeleteJobIDBadRequest) Code() int {
-	return 400
-}
-
-func (o *DeleteJobIDBadRequest) Error() string {
-	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *DeleteJobIDBadRequest) String() string {
-	return fmt.Sprintf("[DELETE /job/{id}][%d] deleteJobIdBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *DeleteJobIDBadRequest) GetPayload() *models.ResponseBody400 {
-	return o.Payload
-}
-
-func (o *DeleteJobIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ResponseBody400)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

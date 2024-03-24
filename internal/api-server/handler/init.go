@@ -81,10 +81,10 @@ func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operati
 		id := params.ID
 
 		// retrieve task from the queue
-		taskInfo, err := findTask(inspector, id)
+		taskInfo, err := findTask(inspector, id, principal)
 		if errors.Is(err, asynq.ErrTaskNotFound) {
 			return operations.NewGetJobIDNotFound().WithPayload(
-				fmt.Sprintf("job %s doesn't exist", id),
+				fmt.Sprintf("job %s doesn't exist or not owned by user %s", id, *principal),
 			)
 		}
 
@@ -99,15 +99,93 @@ func GetJob(ctx context.Context, inspector *asynq.Inspector) func(params operati
 			)
 		}
 
-		// check if job owner (stager user) is the same as principal.
-		// Return 404 not found if it doesn't match
-		if *res.Data.StagerUser != *(*string)(principal) {
-			return operations.NewGetJobIDNotFound().WithPayload(
-				fmt.Sprintf("job %s not owned by the authenticated user: %s", id, *principal),
+		return operations.NewGetJobIDOK().WithPayload(res)
+	}
+}
+
+// RescheduleJob
+func RescheduleJob(ctx context.Context, client *asynq.Client, inspector *asynq.Inspector) func(params operations.PutJobScheduledIDParams, principal *models.Principal) middleware.Responder {
+	return func(params operations.PutJobScheduledIDParams, principal *models.Principal) middleware.Responder {
+
+		id := params.ID
+
+		// retrieve task from the queue
+		taskInfo, err := findTask(inspector, id, principal)
+		if errors.Is(err, asynq.ErrTaskNotFound) {
+			return operations.NewPutJobScheduledIDNotFound().WithPayload(
+				fmt.Sprintf("job %s doesn't exist or not owned by user %s", id, *principal),
 			)
 		}
 
-		return operations.NewGetJobIDOK().WithPayload(res)
+		if err != nil {
+			log.Errorf("[%s]: %s", id, err)
+			return operations.NewPutJobScheduledIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobDataError,
+				},
+			)
+		}
+
+		if taskInfo.State != asynq.TaskStateArchived && taskInfo.State != asynq.TaskStateCompleted {
+			log.Errorf("[%s]: job not in archived and completed state for rescheduling")
+			return operations.NewPutJobScheduledIDBadRequest().WithPayload(
+				fmt.Sprintf("job state (%s) is not archived or completed", taskInfo.State),
+			)
+		}
+
+		// delete task and enqueue the task with same ID, payload and options
+		// let the enqueued task to be processed in 30 seconds.
+		nt := asynq.NewTask(
+			tasks.TypeStager,
+			taskInfo.Payload,
+			asynq.MaxRetry(taskInfo.MaxRetry),
+			asynq.Retention(taskInfo.Retention),
+			asynq.Timeout(taskInfo.Timeout),
+			asynq.ProcessIn(30*time.Second),
+		)
+
+		// delete task first
+		if err := inspector.DeleteTask(taskInfo.Queue, id); err != nil {
+			log.Errorf("[%s] cannot delete task for rescheduling: %s", id, err)
+			return operations.NewPutJobScheduledIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobQueueError,
+				},
+			)
+		}
+
+		// enqueue task
+		ntaskInfo, err := client.EnqueueContext(
+			ctx,
+			nt,
+			asynq.TaskID(id),
+		)
+		if err != nil {
+			log.Errorf("[%s] cannot enqueue task for rescheduling: %s", id, err)
+			return operations.NewPutJobScheduledIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobQueueError,
+				},
+			)
+		}
+
+		log.Infof("[%s] task rescheduled", ntaskInfo.ID)
+
+		res, err := composeResponseBodyJobInfo(ntaskInfo)
+		if err != nil {
+			log.Errorf("%s", err)
+			return operations.NewPutJobScheduledIDInternalServerError().WithPayload(
+				&models.ResponseBody500{
+					ErrorMessage: err.Error(),
+					ExitCode:     JobDataError,
+				},
+			)
+		}
+
+		return operations.NewPutJobScheduledIDOK().WithPayload(res)
 	}
 }
 
@@ -119,30 +197,20 @@ func DeleteJob(ctx context.Context, inspector *asynq.Inspector) func(params oper
 		id := params.ID
 
 		// retrieve task from the queue
-		taskInfo, err := findTask(inspector, id)
+		taskInfo, err := findTask(inspector, id, principal)
 		if errors.Is(err, asynq.ErrTaskNotFound) {
 			return operations.NewDeleteJobIDNotFound().WithPayload(
-				fmt.Sprintf("job %s doesn't exist", id),
+				fmt.Sprintf("job %s doesn't exist or not owned by user %s", id, *principal),
 			)
 		}
 
-		// unmarshal task payload
-		var payload tasks.StagerPayload
-		err = json.Unmarshal(taskInfo.Payload, &payload)
 		if err != nil {
-			log.Errorf("[%s] error unmarshal task payload: %s", err)
+			log.Errorf("[%s]: %s", id, err)
 			return operations.NewDeleteJobIDInternalServerError().WithPayload(
 				&models.ResponseBody500{
 					ErrorMessage: err.Error(),
 					ExitCode:     JobDataError,
 				},
-			)
-		}
-
-		// check stager user
-		if payload.StagerUser != *(*string)(principal) {
-			return operations.NewDeleteJobIDNotFound().WithPayload(
-				fmt.Sprintf("[%s] task doesn't exist or not owned by the authenticated user: %s", id, *principal),
 			)
 		}
 
@@ -481,16 +549,43 @@ func runCmdAs(username string, cmd string, args ...string) (chan string, chan st
 	return cout, cerr, c, nil
 }
 
-// findTask looks into different queues to retrieve the TaskInfo, or return `asynq.ErrTaskNotFound` if not found.
-func findTask(inspector *asynq.Inspector, id string) (*asynq.TaskInfo, error) {
+// findTask looks into different queues to retrieve the TaskInfo with taskID `id`,
+// or return `asynq.ErrTaskNotFound` if not found.
+//
+// If the found task in queue doesn't owned by the `owner`, it is considered as not found
+// and the error `asynq.ErrTaskNotFound` is returned.
+func findTask(
+	inspector *asynq.Inspector,
+	id string,
+	owner *models.Principal,
+) (*asynq.TaskInfo, error) {
+
+	var t *asynq.TaskInfo
+	var err error
 
 	for q := range tasks.StagerQueues {
-		if t, err := inspector.GetTaskInfo(q, id); err == nil {
-			return t, err
+		if t, err = inspector.GetTaskInfo(q, id); err == nil {
+			break
 		}
 	}
 
-	return nil, asynq.ErrTaskNotFound
+	if err != nil {
+		return nil, asynq.ErrTaskNotFound
+	}
+
+	// unmarshal task payload
+	var payload tasks.StagerPayload
+	err = json.Unmarshal(t.Payload, &payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// check job owner
+	if payload.StagerUser != *(*string)(owner) {
+		return nil, asynq.ErrTaskNotFound
+	}
+
+	return t, nil
 }
 
 // getTasksInStateOwnedBy retrieves all tasks "belong" to the `username` by list all
@@ -559,6 +654,7 @@ func getTasksOwnedBy(inspector *asynq.Inspector, username string) []*models.JobI
 	tasks := []*models.JobInfo{}
 
 	for _, s := range []asynq.TaskState{
+		asynq.TaskStateScheduled,
 		asynq.TaskStatePending,
 		asynq.TaskStateActive,
 		asynq.TaskStateRetry,

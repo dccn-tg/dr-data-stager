@@ -71,6 +71,9 @@ func NewDrDataStagerAPI(spec *loads.Document) *DrDataStagerAPI {
 		PostJobsHandler: PostJobsHandlerFunc(func(params PostJobsParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation PostJobs has not yet been implemented")
 		}),
+		PutJobScheduledIDHandler: PutJobScheduledIDHandlerFunc(func(params PutJobScheduledIDParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation PutJobScheduledID has not yet been implemented")
+		}),
 
 		// Applies when the Authorization header is set with the Basic scheme
 		BasicAuthAuth: func(user string, pass string) (*models.Principal, error) {
@@ -146,6 +149,8 @@ type DrDataStagerAPI struct {
 	PostJobHandler PostJobHandler
 	// PostJobsHandler sets the operation handler for the post jobs operation
 	PostJobsHandler PostJobsHandler
+	// PutJobScheduledIDHandler sets the operation handler for the put job scheduled ID operation
+	PutJobScheduledIDHandler PutJobScheduledIDHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -256,6 +261,9 @@ func (o *DrDataStagerAPI) Validate() error {
 	}
 	if o.PostJobsHandler == nil {
 		unregistered = append(unregistered, "PostJobsHandler")
+	}
+	if o.PutJobScheduledIDHandler == nil {
+		unregistered = append(unregistered, "PutJobScheduledIDHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -396,6 +404,10 @@ func (o *DrDataStagerAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/jobs"] = NewPostJobs(o.context, o.PostJobsHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/job/scheduled/{id}"] = NewPutJobScheduledID(o.context, o.PutJobScheduledIDHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

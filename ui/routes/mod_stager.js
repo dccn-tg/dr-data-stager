@@ -90,17 +90,31 @@ router.get('/dir', auth.isAuthenticated, function(request, response) {
 });
 
 /* Start or restart a stopped job */
-router.put('/job/:id/state/inactive', function(request, response) {
-    var sess = request.session;
-    var c = new RestClient({user: sess.user.stager,
-                            password: sess.pass.stager});                        
-    // get the job to check if the job is owned by the stager users
-    try {
+router.put('/job/scheduled/:id', auth.isAuthenticated, function(request, response) {
+                            
+    var args = { headers: { "Accept": "application/json" } };
+    var c = new RestClient({
+        user: request.user.username,
+        password: request.user.token
+    });
 
-    } catch(e) {
+    var url = config.get('stager.restfulEndpoint') + '/job/scheduled/' + request.params.id;
+
+    c.put(url, args, function(data, resp) {
+        if ( resp.statusCode == 200 ) {
+            response.status(200);
+            response.json(data);
+        } else {
+            console.log('api-server response status: ' + resp.statusCode);
+            response.status(resp.statusCode);
+            response.json({
+                message: resp.statusMessage
+            });
+        }
+    }).on('error', function(e) {
         console.error(e);
         util.responseOnError('json', {}, response);
-    }    
+    });
 });
 
 /* Get single transfer job by id */

@@ -205,9 +205,11 @@ func main() {
 	api.DeleteJobIDHandler = operations.DeleteJobIDHandlerFunc(handler.DeleteJob(ctx, inspector))
 	api.PostJobHandler = operations.PostJobHandlerFunc(handler.NewJob(ctx, client, rdb4tid))
 	api.PostJobsHandler = operations.PostJobsHandlerFunc(handler.NewJobs(ctx, client, rdb4tid))
+	api.PutJobScheduledIDHandler = operations.PutJobScheduledIDHandlerFunc(handler.RescheduleJob(ctx, client, inspector))
 	api.GetJobsHandler = operations.GetJobsHandlerFunc(handler.GetJobs(ctx, inspector))
 	api.GetDirHandler = operations.GetDirHandlerFunc(handler.ListDir(ctx))
 	api.GetDacProjectNumberHandler = operations.GetDacProjectNumberHandlerFunc(handler.GetDacByProject(ctx, cfg))
+
 	// configure API
 	server.ConfigureAPI()
 

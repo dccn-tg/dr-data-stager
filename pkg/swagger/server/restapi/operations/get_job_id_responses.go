@@ -58,51 +58,6 @@ func (o *GetJobIDOK) WriteResponse(rw http.ResponseWriter, producer runtime.Prod
 	}
 }
 
-// GetJobIDBadRequestCode is the HTTP code returned for type GetJobIDBadRequest
-const GetJobIDBadRequestCode int = 400
-
-/*
-GetJobIDBadRequest bad request
-
-swagger:response getJobIdBadRequest
-*/
-type GetJobIDBadRequest struct {
-
-	/*
-	  In: Body
-	*/
-	Payload *models.ResponseBody400 `json:"body,omitempty"`
-}
-
-// NewGetJobIDBadRequest creates GetJobIDBadRequest with default headers values
-func NewGetJobIDBadRequest() *GetJobIDBadRequest {
-
-	return &GetJobIDBadRequest{}
-}
-
-// WithPayload adds the payload to the get job Id bad request response
-func (o *GetJobIDBadRequest) WithPayload(payload *models.ResponseBody400) *GetJobIDBadRequest {
-	o.Payload = payload
-	return o
-}
-
-// SetPayload sets the payload to the get job Id bad request response
-func (o *GetJobIDBadRequest) SetPayload(payload *models.ResponseBody400) {
-	o.Payload = payload
-}
-
-// WriteResponse to the client
-func (o *GetJobIDBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.WriteHeader(400)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
-	}
-}
-
 // GetJobIDNotFoundCode is the HTTP code returned for type GetJobIDNotFound
 const GetJobIDNotFoundCode int = 404
 

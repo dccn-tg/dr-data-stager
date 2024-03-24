@@ -34,7 +34,7 @@ type JobStatus struct {
 
 	// job status from the last execution.
 	// Required: true
-	// Enum: [waiting processing failed succeeded canceled]
+	// Enum: [scheduled pending active retry completed archived]
 	Status *string `json:"status"`
 }
 
@@ -106,7 +106,7 @@ var jobStatusTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["waiting","processing","failed","succeeded","canceled"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["scheduled","pending","active","retry","completed","archived"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -116,20 +116,23 @@ func init() {
 
 const (
 
-	// JobStatusStatusWaiting captures enum value "waiting"
-	JobStatusStatusWaiting string = "waiting"
+	// JobStatusStatusScheduled captures enum value "scheduled"
+	JobStatusStatusScheduled string = "scheduled"
 
-	// JobStatusStatusProcessing captures enum value "processing"
-	JobStatusStatusProcessing string = "processing"
+	// JobStatusStatusPending captures enum value "pending"
+	JobStatusStatusPending string = "pending"
 
-	// JobStatusStatusFailed captures enum value "failed"
-	JobStatusStatusFailed string = "failed"
+	// JobStatusStatusActive captures enum value "active"
+	JobStatusStatusActive string = "active"
 
-	// JobStatusStatusSucceeded captures enum value "succeeded"
-	JobStatusStatusSucceeded string = "succeeded"
+	// JobStatusStatusRetry captures enum value "retry"
+	JobStatusStatusRetry string = "retry"
 
-	// JobStatusStatusCanceled captures enum value "canceled"
-	JobStatusStatusCanceled string = "canceled"
+	// JobStatusStatusCompleted captures enum value "completed"
+	JobStatusStatusCompleted string = "completed"
+
+	// JobStatusStatusArchived captures enum value "archived"
+	JobStatusStatusArchived string = "archived"
 )
 
 // prop value enum

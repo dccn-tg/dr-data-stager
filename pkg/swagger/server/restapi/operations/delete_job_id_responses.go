@@ -58,51 +58,6 @@ func (o *DeleteJobIDOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 	}
 }
 
-// DeleteJobIDBadRequestCode is the HTTP code returned for type DeleteJobIDBadRequest
-const DeleteJobIDBadRequestCode int = 400
-
-/*
-DeleteJobIDBadRequest bad request
-
-swagger:response deleteJobIdBadRequest
-*/
-type DeleteJobIDBadRequest struct {
-
-	/*
-	  In: Body
-	*/
-	Payload *models.ResponseBody400 `json:"body,omitempty"`
-}
-
-// NewDeleteJobIDBadRequest creates DeleteJobIDBadRequest with default headers values
-func NewDeleteJobIDBadRequest() *DeleteJobIDBadRequest {
-
-	return &DeleteJobIDBadRequest{}
-}
-
-// WithPayload adds the payload to the delete job Id bad request response
-func (o *DeleteJobIDBadRequest) WithPayload(payload *models.ResponseBody400) *DeleteJobIDBadRequest {
-	o.Payload = payload
-	return o
-}
-
-// SetPayload sets the payload to the delete job Id bad request response
-func (o *DeleteJobIDBadRequest) SetPayload(payload *models.ResponseBody400) {
-	o.Payload = payload
-}
-
-// WriteResponse to the client
-func (o *DeleteJobIDBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.WriteHeader(400)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
-	}
-}
-
 // DeleteJobIDNotFoundCode is the HTTP code returned for type DeleteJobIDNotFound
 const DeleteJobIDNotFoundCode int = 404
 

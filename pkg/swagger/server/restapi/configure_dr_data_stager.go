@@ -101,6 +101,11 @@ func configureAPI(api *operations.DrDataStagerAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.PostJobs has not yet been implemented")
 		})
 	}
+	if api.PutJobScheduledIDHandler == nil {
+		api.PutJobScheduledIDHandler = operations.PutJobScheduledIDHandlerFunc(func(params operations.PutJobScheduledIDParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation operations.PutJobScheduledID has not yet been implemented")
+		})
+	}
 
 	api.PreServerShutdown = func() {}
 

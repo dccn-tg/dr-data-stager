@@ -58,51 +58,6 @@ func (o *GetJobsStatusOK) WriteResponse(rw http.ResponseWriter, producer runtime
 	}
 }
 
-// GetJobsStatusBadRequestCode is the HTTP code returned for type GetJobsStatusBadRequest
-const GetJobsStatusBadRequestCode int = 400
-
-/*
-GetJobsStatusBadRequest bad request
-
-swagger:response getJobsStatusBadRequest
-*/
-type GetJobsStatusBadRequest struct {
-
-	/*
-	  In: Body
-	*/
-	Payload *models.ResponseBody400 `json:"body,omitempty"`
-}
-
-// NewGetJobsStatusBadRequest creates GetJobsStatusBadRequest with default headers values
-func NewGetJobsStatusBadRequest() *GetJobsStatusBadRequest {
-
-	return &GetJobsStatusBadRequest{}
-}
-
-// WithPayload adds the payload to the get jobs status bad request response
-func (o *GetJobsStatusBadRequest) WithPayload(payload *models.ResponseBody400) *GetJobsStatusBadRequest {
-	o.Payload = payload
-	return o
-}
-
-// SetPayload sets the payload to the get jobs status bad request response
-func (o *GetJobsStatusBadRequest) SetPayload(payload *models.ResponseBody400) {
-	o.Payload = payload
-}
-
-// WriteResponse to the client
-func (o *GetJobsStatusBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.WriteHeader(400)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
-	}
-}
-
 // GetJobsStatusInternalServerErrorCode is the HTTP code returned for type GetJobsStatusInternalServerError
 const GetJobsStatusInternalServerErrorCode int = 500
 

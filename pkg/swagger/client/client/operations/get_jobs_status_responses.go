@@ -29,12 +29,6 @@ func (o *GetJobsStatusReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetJobsStatusBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 500:
 		result := NewGetJobsStatusInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -105,74 +99,6 @@ func (o *GetJobsStatusOK) GetPayload() *models.ResponseBodyJobs {
 func (o *GetJobsStatusOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ResponseBodyJobs)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetJobsStatusBadRequest creates a GetJobsStatusBadRequest with default headers values
-func NewGetJobsStatusBadRequest() *GetJobsStatusBadRequest {
-	return &GetJobsStatusBadRequest{}
-}
-
-/*
-GetJobsStatusBadRequest describes a response with status code 400, with default header values.
-
-bad request
-*/
-type GetJobsStatusBadRequest struct {
-	Payload *models.ResponseBody400
-}
-
-// IsSuccess returns true when this get jobs status bad request response has a 2xx status code
-func (o *GetJobsStatusBadRequest) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this get jobs status bad request response has a 3xx status code
-func (o *GetJobsStatusBadRequest) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this get jobs status bad request response has a 4xx status code
-func (o *GetJobsStatusBadRequest) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this get jobs status bad request response has a 5xx status code
-func (o *GetJobsStatusBadRequest) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this get jobs status bad request response a status code equal to that given
-func (o *GetJobsStatusBadRequest) IsCode(code int) bool {
-	return code == 400
-}
-
-// Code gets the status code for the get jobs status bad request response
-func (o *GetJobsStatusBadRequest) Code() int {
-	return 400
-}
-
-func (o *GetJobsStatusBadRequest) Error() string {
-	return fmt.Sprintf("[GET /jobs/{status}][%d] getJobsStatusBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetJobsStatusBadRequest) String() string {
-	return fmt.Sprintf("[GET /jobs/{status}][%d] getJobsStatusBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetJobsStatusBadRequest) GetPayload() *models.ResponseBody400 {
-	return o.Payload
-}
-
-func (o *GetJobsStatusBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ResponseBody400)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
