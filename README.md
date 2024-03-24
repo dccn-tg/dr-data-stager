@@ -37,4 +37,4 @@ $ docker-compose build
 
 ## Environment variables
 
-Supported environment variables are listed in [env.sh](env.sh).
+Some of the supported environment variables are listed in [env.sh](env.sh).
