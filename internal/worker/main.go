@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
+	"github.com/Donders-Institute/dr-data-stager/internal/worker/middleware"
 	"github.com/hibiken/asynq"
 
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
@@ -68,7 +68,7 @@ func main() {
 		log.Fatalf("fail to load configuration: %s", *configFile)
 	}
 
-	// redis client instance for notifying cache update
+	// redis client instance
 	redisOpts, err := asynq.ParseRedisURI(*redisURL)
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -89,35 +89,11 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
-	mux.Use(notificationMiddleware)
+	mux.Use(middleware.Notifier(cfg))
 	mux.Handle(tasks.TypeStager, tasks.NewStager(cfg))
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {
 		log.Fatalf("could not run server: %v", err)
 	}
-}
-
-// notificationMiddleware performs a postprocess for notifying enduser and/or the
-// service manager/adminstrator concering the result of the processed stager task.
-func notificationMiddleware(next asynq.Handler) asynq.Handler {
-	return asynq.HandlerFunc(func(ctx context.Context, t *asynq.Task) error {
-
-		err := next.ProcessTask(ctx, t)
-
-		if err == asynq.SkipRetry {
-			log.Debugf("I want to skip retry!!")
-		}
-
-		if err == nil {
-			log.Debugf("notifying job owner on complete job")
-		} else {
-			retried, _ := asynq.GetRetryCount(ctx)
-			maxRetry, _ := asynq.GetMaxRetry(ctx)
-			if retried >= maxRetry {
-				log.Debugf("notifying job owner and admin on failure")
-			}
-		}
-		return err
-	})
 }

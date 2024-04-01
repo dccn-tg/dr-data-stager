@@ -15,3 +15,8 @@ dr:
     - DCC
     - DCN
     - DCMN
+mailer:
+  host: localhost
+  port: 25
+  auth_plain_user: user
+  auth_plain_pass: pass

@@ -6,13 +6,15 @@ import (
 	"path/filepath"
 
 	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
+	cfg "github.com/dccn-tg/tg-toolset-golang/pkg/config"
 	"github.com/spf13/viper"
 )
 
 // Configuration is the data structure for marshaling the
 // config.yml file using the viper configuration framework.
 type Configuration struct {
-	Dr dr.Config
+	Dr     dr.Config
+	Mailer cfg.SMTPConfiguration
 }
 
 // LoadConfig reads configuration file `cpath` and returns the
@@ -33,7 +35,7 @@ func LoadConfig(cpath string) (Configuration, error) {
 
 	viper.SetConfigFile(cfg)
 	if err := viper.ReadInConfig(); err != nil {
-		return conf, fmt.Errorf("Error reading config file, %s", err)
+		return conf, fmt.Errorf("error reading config file, %s", err)
 	}
 
 	err = viper.Unmarshal(&conf)
