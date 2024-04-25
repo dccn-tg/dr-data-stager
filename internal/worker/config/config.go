@@ -15,6 +15,7 @@ import (
 type Configuration struct {
 	Dr     dr.Config
 	Mailer cfg.SMTPConfiguration
+	Admins []string
 }
 
 // LoadConfig reads configuration file `cpath` and returns the

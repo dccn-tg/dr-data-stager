@@ -74,6 +74,9 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
+	// inspector
+	inspector := asynq.NewInspector(redisOpts)
+
 	srv := asynq.NewServer(
 		redisOpts,
 		asynq.Config{
@@ -89,7 +92,7 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
-	mux.Use(middleware.Notifier(cfg))
+	mux.Use(middleware.Notifier(inspector, cfg))
 	mux.Handle(tasks.TypeStager, tasks.NewStager(cfg))
 	// ...register other handlers...
 

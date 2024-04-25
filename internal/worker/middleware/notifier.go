@@ -2,21 +2,81 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
+	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 
 	"github.com/dccn-tg/tg-toolset-golang/pkg/mailer"
 	"github.com/hibiken/asynq"
 )
 
-func Notifier(cfg config.Configuration) func(asynq.Handler) asynq.Handler {
+// internal data structure for a cancelled task
+type ct struct {
+	queue string
+	id    string
+}
+
+// notification mode
+type nmode int
+
+const (
+	nFailed nmode = iota
+	nCompleted
+)
+
+func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.Handler) asynq.Handler {
 
 	// SMTP mailer
 	client := mailer.New(cfg.Mailer)
 
+	cct := make(chan ct)
+
+	// internal go routine to archive cancelled task
+	go func() {
+
+		log.Debugf("task archiver started\n")
+
+		defer log.Debugf("task archiver stopped\n")
+
+		var tinfo *asynq.TaskInfo
+		var err error
+
+	loop:
+		for t := range cct {
+
+			tinfo, err = inspector.GetTaskInfo(t.queue, t.id)
+			if err != nil {
+				log.Errorf("cannot get task info of task %s in queue %s: %s\n", t.id, t.queue, err)
+				continue loop
+			}
+
+			for {
+				if tinfo.State != asynq.TaskStateActive {
+					break
+				}
+
+				log.Debugf("task %s status %s\n", t.id, tinfo.State)
+
+				tinfo, err = inspector.GetTaskInfo(t.queue, t.id)
+				if err != nil {
+					log.Errorf("cannot get task info of task %s in queue %s: %s\n", t.id, t.queue, err)
+					continue loop
+				}
+			}
+
+			err = inspector.ArchiveTask(t.queue, t.id)
+			if err != nil {
+				log.Errorf("cannot archive cancelled task %s: %s\n", t.id, err)
+			}
+		}
+	}()
+
 	return func(next asynq.Handler) asynq.Handler {
+
 		return asynq.HandlerFunc(func(ctx context.Context, t *asynq.Task) error {
 
 			err := next.ProcessTask(ctx, t)
@@ -24,10 +84,30 @@ func Notifier(cfg config.Configuration) func(asynq.Handler) asynq.Handler {
 			switch {
 			case err == nil:
 				log.Debugf("job completed, notifying job owner: %+v\n", client)
+				id, _ := asynq.GetTaskID(ctx)
+				q, _ := asynq.GetQueueName(ctx)
+				if tinfo, err := inspector.GetTaskInfo(q, id); err != nil {
+					log.Errorf("cannot get task %s: %s\n", id, err)
+					break
+				} else {
+					sendEmailNotification(client, tinfo, nCompleted)
+				}
 			case err == asynq.SkipRetry:
 				log.Debugf("job retry skipped")
 			case errors.Is(err, context.Canceled):
 				log.Debugf("job canceled")
+
+				id, _ := asynq.GetTaskID(ctx)
+				q, ok := asynq.GetQueueName(ctx)
+				if !ok {
+					log.Errorf("cannot find queue name for cancelled job: %s\n", id)
+					break
+				}
+
+				cct <- ct{
+					queue: q,
+					id:    id,
+				}
 			case errors.Is(err, context.DeadlineExceeded):
 				log.Debugf("job exceeded deadline")
 			default:
@@ -35,10 +115,57 @@ func Notifier(cfg config.Configuration) func(asynq.Handler) asynq.Handler {
 				maxRetry, _ := asynq.GetMaxRetry(ctx)
 				if retried >= maxRetry {
 					log.Debugf("job failued after retries, notifying job ower and admin: %+v\n", client)
+					id, _ := asynq.GetTaskID(ctx)
+					q, _ := asynq.GetQueueName(ctx)
+					if tinfo, err := inspector.GetTaskInfo(q, id); err != nil {
+						log.Errorf("cannot get task %s: %s\n", id, err)
+						break
+					} else {
+						sendEmailNotification(client, tinfo, nFailed, cfg.Admins...)
+					}
 				}
 			}
 
 			return err
 		})
 	}
+}
+
+func sendEmailNotification(client *mailer.Mailer, tinfo *asynq.TaskInfo, nt nmode, cc ...string) {
+
+	var p tasks.StagerPayload
+	if err := json.Unmarshal(tinfo.Payload, &p); err != nil {
+		log.Errorf("fail to unmarshal task payload %s: %s\n", tinfo.ID, err)
+		return
+	}
+
+	var body, subject string
+	switch nt {
+	case nFailed:
+		subject = fmt.Sprintf("[ALERT] stager job %s failed", tinfo.ID)
+		body = composeMailBodyTaskFailed(tinfo)
+	case nCompleted:
+		subject = fmt.Sprintf("[OK] stager job %s completed", tinfo.ID)
+		body = composeMailBodyTaskCompleted(tinfo)
+	}
+
+	err := client.SendMail(
+		"datasupport@donders.ru.nl",
+		subject,
+		body,
+		[]string{p.StagerUserEmail},
+		cc...,
+	)
+
+	if err != nil {
+		log.Errorf("fail to send out notification: %s\n", err)
+	}
+}
+
+func composeMailBodyTaskCompleted(tinfo *asynq.TaskInfo) string {
+	return tinfo.ID
+}
+
+func composeMailBodyTaskFailed(tinfo *asynq.TaskInfo) string {
+	return tinfo.ID
 }

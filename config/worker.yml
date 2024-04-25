@@ -20,3 +20,6 @@ mailer:
   port: 25
   auth_plain_user: user
   auth_plain_pass: pass
+admins:
+  - admin1@
+  - admin2@
