@@ -13,7 +13,6 @@ import (
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 
-	"github.com/dccn-tg/tg-toolset-golang/pkg/mailer"
 	"github.com/hibiken/asynq"
 )
 
@@ -45,7 +44,9 @@ func (m nmode) String() string {
 func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.Handler) asynq.Handler {
 
 	// SMTP mailer
-	client := mailer.New(cfg.Mailer)
+	client := stagerMailer{
+		config: cfg.Mailer,
+	}
 
 	cct := make(chan ct)
 
@@ -104,7 +105,7 @@ func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.H
 					log.Errorf("cannot get task %s: %s\n", id, err)
 					break
 				} else {
-					sendEmailNotification(client, tinfo, nCompleted)
+					sendEmailNotification(&client, tinfo, nCompleted)
 				}
 			case err == asynq.SkipRetry:
 				log.Debugf("job retry skipped")
@@ -135,7 +136,7 @@ func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.H
 						log.Errorf("cannot get task %s: %s\n", id, err)
 						break
 					} else {
-						sendEmailNotification(client, tinfo, nFailed, cfg.Admins...)
+						sendEmailNotification(&client, tinfo, nFailed, cfg.Admins...)
 					}
 				}
 			}
@@ -145,7 +146,7 @@ func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.H
 	}
 }
 
-func sendEmailNotification(client *mailer.Mailer, tinfo *asynq.TaskInfo, nt nmode, cc ...string) {
+func sendEmailNotification(client *stagerMailer, tinfo *asynq.TaskInfo, nt nmode, cc ...string) {
 
 	var p tasks.StagerPayload
 	if err := json.Unmarshal(tinfo.Payload, &p); err != nil {
@@ -163,7 +164,7 @@ func sendEmailNotification(client *mailer.Mailer, tinfo *asynq.TaskInfo, nt nmod
 
 	body := composeMailBody(tinfo, p, nt)
 
-	err := client.SendMail(
+	err := client.SendHtmlMail(
 		"datasupport@donders.ru.nl",
 		subject,
 		body,
@@ -194,6 +195,12 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmod
 		return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
 	}
 
+	rslt := new(tasks.StagerTaskResult)
+	if err := json.Unmarshal(tinfo.Result, &rslt); err != nil {
+		log.Errorf("fail to unmarshal task result %s: %s\n", tinfo.ID, err)
+		return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
+	}
+
 	buf := new(bytes.Buffer)
 
 	err = t.Execute(buf, DataNotification{
@@ -204,9 +211,10 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmod
 		SrcURL:       payload.SrcURL,
 		DstURL:       payload.DstURL,
 		CreatedAt:    time.Unix(payload.CreatedAt, 0),
-		CompletedAt:  tinfo.CompletedAt,
-		LastFailedAt: tinfo.LastFailedAt,
+		CompletedAt:  tinfo.CompletedAt.Truncate(time.Second),
+		LastFailedAt: tinfo.LastFailedAt.Truncate(time.Second),
 		LastErr:      tinfo.LastErr,
+		Result:       *rslt,
 	})
 	if err != nil {
 		log.Errorf("cannot compose email for %s job %s: %s\n", ntStr, tinfo.ID, err)

@@ -3,6 +3,7 @@ package middleware
 import (
 	"time"
 
+	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
 	"github.com/hibiken/asynq"
 )
 
@@ -17,6 +18,7 @@ type DataNotification struct {
 	CompletedAt  time.Time
 	LastFailedAt time.Time
 	LastErr      string
+	Result       tasks.StagerTaskResult
 }
 
 const templateNotificationCompleted string = `
@@ -100,8 +102,8 @@ const templateNotificationFailed string = `
 				<td>{{ .CreatedAt }}</td>
 			</tr>
 			<tr>
-				<th>complete at</th>
-				<td>{{ .CompletedAt }}</td>
+				<th>last failed at</th>
+				<td>{{ .LastFailedAt }}</td>
 			</tr>
 			<tr>
 				<th>source</th>
@@ -110,6 +112,14 @@ const templateNotificationFailed string = `
 			<tr>
 				<th>destination</th>
 				<td>{{ .DstURL }}</td>
+			</tr>
+			<tr>
+				<th>progress</th>
+				<td>{{ .Result.Progress.Processed }} / {{ .Result.Progress.Total }}</td>
+			</tr>
+			<tr>
+				<th>last error</th>
+				<td>{{ .LastErr }}</td>
 			</tr>
 		</table>
 	</div>

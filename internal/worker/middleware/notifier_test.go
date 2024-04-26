@@ -8,7 +8,6 @@ import (
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
-	"github.com/dccn-tg/tg-toolset-golang/pkg/mailer"
 	"github.com/hibiken/asynq"
 
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
@@ -31,14 +30,16 @@ func TestLoadConfig(t *testing.T) {
 	cfg, err := config.LoadConfig(os.Getenv("TEST_CONFIG_FILE"))
 
 	if err != nil {
-		t.Errorf("%s\n", err)
+		t.Fatalf("%s\n", err)
 	}
 
 	// SMTP mailer
-	client := mailer.New(cfg.Mailer)
+	client := stagerMailer{
+		config: cfg.Mailer,
+	}
 
 	payload, _ := json.Marshal(tasks.StagerPayload{
-		CreatedAt:         time.Now().Unix(),
+		CreatedAt:         time.Now().Add(-3 * time.Hour).Unix(),
 		Title:             "test email notification",
 		DrUser:            "u1234567@ru.nl",
 		DrPass:            "xxxx",
@@ -49,6 +50,13 @@ func TestLoadConfig(t *testing.T) {
 		Timeout:           86400,
 		TimeoutNoprogress: 3600,
 	})
+
+	rslt := new(tasks.StagerTaskResult)
+	rslt.Progress.Total = 100
+	rslt.Progress.Processed = 90
+	rslt.Progress.Failed = 1
+
+	drslt, _ := json.Marshal(rslt)
 
 	tinfo := asynq.TaskInfo{
 		ID:           "123@abc",
@@ -61,8 +69,9 @@ func TestLoadConfig(t *testing.T) {
 		LastErr:      "no data has been uploaded",
 		LastFailedAt: time.Now().Add(-2 * time.Hour),
 		CompletedAt:  time.Now().Add(-1 * time.Minute),
+		Result:       drslt,
 	}
 
-	sendEmailNotification(client, &tinfo, nCompleted, cfg.Admins...)
+	sendEmailNotification(&client, &tinfo, nFailed, cfg.Admins...)
 
 }
