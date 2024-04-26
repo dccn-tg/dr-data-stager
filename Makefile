@@ -30,6 +30,9 @@ test_api-server:
 test_utility:
 	@GOPATH=$(GOPATH) GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go test -count=1 -v github.com/Donders-Institute/dr-data-stager/pkg/utility/...
 
+test_worker:
+	@GOPATH=$(GOPATH) GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go test -count=1 -v github.com/Donders-Institute/dr-data-stager/internal/worker/...
+
 worker:
 	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o build/data-stager-worker internal/worker/main.go
 

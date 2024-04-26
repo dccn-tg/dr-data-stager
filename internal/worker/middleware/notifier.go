@@ -1,10 +1,13 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"time"
 
 	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
 	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
@@ -28,6 +31,17 @@ const (
 	nCompleted
 )
 
+func (m nmode) String() string {
+	switch m {
+	case nFailed:
+		return "failed"
+	case nCompleted:
+		return "completed"
+	}
+	return "unknown"
+}
+
+// Notifier is a asynq middleware to handle cancelled jobs and sending out email notification.
 func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.Handler) asynq.Handler {
 
 	// SMTP mailer
@@ -139,15 +153,15 @@ func sendEmailNotification(client *mailer.Mailer, tinfo *asynq.TaskInfo, nt nmod
 		return
 	}
 
-	var body, subject string
+	var subject string
 	switch nt {
 	case nFailed:
 		subject = fmt.Sprintf("[ALERT] stager job %s failed", tinfo.ID)
-		body = composeMailBodyTaskFailed(tinfo)
 	case nCompleted:
 		subject = fmt.Sprintf("[OK] stager job %s completed", tinfo.ID)
-		body = composeMailBodyTaskCompleted(tinfo)
 	}
+
+	body := composeMailBody(tinfo, p, nt)
 
 	err := client.SendMail(
 		"datasupport@donders.ru.nl",
@@ -162,10 +176,42 @@ func sendEmailNotification(client *mailer.Mailer, tinfo *asynq.TaskInfo, nt nmod
 	}
 }
 
-func composeMailBodyTaskCompleted(tinfo *asynq.TaskInfo) string {
-	return tinfo.ID
-}
+func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmode) string {
 
-func composeMailBodyTaskFailed(tinfo *asynq.TaskInfo) string {
-	return tinfo.ID
+	var tmsg, ntStr string
+	switch nt {
+	case nFailed:
+		tmsg = templateNotificationFailed
+		ntStr = "failed"
+	case nCompleted:
+		tmsg = templateNotificationCompleted
+		ntStr = "completed"
+	}
+
+	t, err := template.New("msg").Parse(tmsg)
+	if err != nil {
+		log.Errorf("cannot parse email template for %s job %s: %s\n", ntStr, tinfo.ID, err)
+		return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
+	}
+
+	buf := new(bytes.Buffer)
+
+	err = t.Execute(buf, DataNotification{
+		ID:           tinfo.ID,
+		State:        tinfo.State,
+		StagerUser:   payload.StagerUser,
+		DrUser:       payload.DrUser,
+		SrcURL:       payload.SrcURL,
+		DstURL:       payload.DstURL,
+		CreatedAt:    time.Unix(payload.CreatedAt, 0),
+		CompletedAt:  tinfo.CompletedAt,
+		LastFailedAt: tinfo.LastFailedAt,
+		LastErr:      tinfo.LastErr,
+	})
+	if err != nil {
+		log.Errorf("cannot compose email for %s job %s: %s\n", ntStr, tinfo.ID, err)
+		return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
+	}
+
+	return buf.String()
 }
