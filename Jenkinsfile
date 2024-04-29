@@ -53,10 +53,7 @@ pipeline {
                 }
             }
             agent {
-                docker {
-                    image "${env.DOCKER_REGISTRY}/data-stager-api:${env.DOCKER_IMAGE_TAG}"
-                    reuseNode true
-                }
+                label 'swarm-manager'
             }
             steps {
                 echo 'Unit tests go here'
@@ -84,6 +81,9 @@ pipeline {
             }
             stages {
                 stage('Deploying containers') {
+                    agent {
+                        label 'swarm-manager'
+                    }
                     steps {
 
                         sh (
@@ -146,12 +146,6 @@ pipeline {
             when {
                 expression {
                     return params.PRODUCTION
-                }
-            }
-            agent {
-                docker {
-                    image "${env.DOCKER_REGISTRY}/data-stager-api:${env.DOCKER_IMAGE_TAG}"
-                    reuseNode true
                 }
             }
             steps {
