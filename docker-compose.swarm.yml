@@ -14,7 +14,7 @@ services:
       - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
     deploy:
       placement:
-        constrains:
+        constraints:
           - node.labels.IpRange==44
   ui:
     networks:
