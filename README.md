@@ -17,6 +17,7 @@ Task is in a JSON document like the one below.
   "dstURL": "string",
   "srcURL": "string",
   "stagerUser": "string",
+  "stagerEmail": "string",
   "timeout": 0,
   "timeout_noprogress": 0,
   "title": "string"
