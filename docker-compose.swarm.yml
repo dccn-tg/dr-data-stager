@@ -16,4 +16,4 @@ services:
 networks:
   default:
     name: dr-data-stager-net
-    attachable: false
+    attachable: true
