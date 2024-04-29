@@ -34,7 +34,9 @@ The _UI (frontend)_ implements the OIDC workflow throught the _UI (backend)_.
 
 ### RDR credential
 
-The user is authenticated through _UI (backend)_ with the RDR data-access credential when submitting transfer jobs from the _UI (frontend)_.  The authentication is done by the _UI (backend)_ making a `PROPFIND` call to the RDR WebDAV endpoint to check the response code (e.g. `401` indicates an invalid credential).  Following a successful authentication, the credential is transferred and stored at the _UI (backend)_ as a session cookie.  When the user submit a transfer job, the credential is encrypted and transferred to the _API server_ and stored in the _task scheduler (asynq)_.  When the task is processed by the _Worker_, the credential is decrypted and used by _s-isync_ program to perform data transfer using the IRODS protocol.
+The user is authenticated through _UI (backend)_ with the RDR data-access credential when submitting transfer jobs from the _UI (frontend)_.  The authentication is done by the _UI (backend)_ making a `PROPFIND` call to the RDR WebDAV endpoint to check the response code (e.g. `401` indicates an invalid credential).  Following a successful authentication, the credential is transferred and stored at the _UI (backend)_ as a session cookie which is valid for 4 hours.  When the user submit a transfer job, the credential is encrypted by _UI (backend)_ and transferred to the _API server_ as part of the task payload.  Tasks are stored in the _task store (redis)_.  When the task is processed by the _Worker_, the credential is decrypted and used by _s-isync_ program to perform data transfer using the IRODS protocol.
+
+The credential en-/decryption uses a RSA key pair.
 
 ### The _s-isync_ program
 
