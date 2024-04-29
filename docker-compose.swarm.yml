@@ -12,8 +12,26 @@ services:
       - ${PROJECT_VOL:-/project}:/project
       - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
       - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
+    deploy:
+      placement:
+        constrains:
+          - node.labels.IpRange==44
+  ui:
+    network:
+      default:
+      proxynet:
+        aliases:
+          - dr-data-stager-ui
+  admin:
+    network:
+      default:
+      proxynet:
+        aliases:
+          - dr-data-stager-admin
 
 networks:
   default:
     name: dr-data-stager-net
     attachable: true
+  proxynet:
+    external: true
