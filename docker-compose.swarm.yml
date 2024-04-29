@@ -1,0 +1,19 @@
+version: "3.7"
+services:
+  api-server:
+    volumes:
+      - ${PROJECT_VOL:-/project}:/project
+      - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
+      - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
+  worker:
+    volumes:
+      - /var/lib/sss/pipes:/var/lib/sss/pipes
+      - /var/lib/sss/mc:/var/lib/sss/mc:ro
+      - ${PROJECT_VOL:-/project}:/project
+      - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
+      - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
+
+networks:
+  default:
+    name: dr-data-stager-net
+    attachable: false
