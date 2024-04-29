@@ -17,13 +17,13 @@ services:
         constrains:
           - node.labels.IpRange==44
   ui:
-    network:
+    networks:
       default:
       proxynet:
         aliases:
           - dr-data-stager-ui
   admin:
-    network:
+    networks:
       default:
       proxynet:
         aliases:
