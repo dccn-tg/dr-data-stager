@@ -1,17 +1,3 @@
-def docker_ps_health_check(list) {
-    for (int i = 0; i < list.size(); i++) {
-        statusCode = sh(
-            returnStatus: true,
-            label: "checking if ${list[i]} in running state",
-            script: "docker ps --format {{.Names}} --filter status=running --filter name=${list[i]} | grep ${list[i]}"
-        )
-
-        if ( statusCode != 0 ) {
-            return statusCode
-        }
-    }
-}
-
 pipeline {
     agent any
 
@@ -110,7 +96,7 @@ pipeline {
                         )
                         withCredentials ([
                             usernamePassword (
-                                credentialsId: params.DR_DATA_STAGER_AUTH_CLIENT_CREDENTIALS,
+                                credentialsId: params.AUTH_CLIENT_CREDENTIAL,
                                 usernameVariable: 'AUTH_CLIENT_ID',
                                 passwordVariable: 'AUTH_CLIENT_SECRET'
                             ),
@@ -175,7 +161,7 @@ pipeline {
                 // Handle Github tags
                 withCredentials([
                     usernamePassword (
-                        credentialsId: params.GITHUB_CREDENTIALS,
+                        credentialsId: params.GITHUB_CREDENTIAL,
                         usernameVariable: 'GITHUB_USERNAME',
                         passwordVariable: 'GITHUB_PASSWORD'
                     )
@@ -215,7 +201,7 @@ pipeline {
                 ]) {
                     withCredentials([
                         usernamePassword (
-                            credentialsId: params.PRODUCTION_DOCKER_REGISTRY_CREDENTIALS,
+                            credentialsId: params.PRODUCTION_DOCKER_REGISTRY_CREDENTIAL,
                             usernameVariable: 'DOCKER_USERNAME',
                             passwordVariable: 'DOCKER_PASSWORD'
                         )
