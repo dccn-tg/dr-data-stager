@@ -15,6 +15,7 @@ TASK_DB_REDIS_DATA=/tmp/data
 # configuration files
 API_CONFIG=./config/api-server.yml
 WORKER_CONFIG=./config/worker.yml
+UI_CONFIG=./ui/config/default.json
 
 # iCAT server certificate for secured iRODS communications
 IRODS_ICAT_CERT=./docker/worker/icat-prod.pem

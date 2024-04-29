@@ -36,6 +36,9 @@ echo
 echo "# worker configuration file"
 echo "WORKER_CONFIG=$WORKER_CONFIG"
 echo
+echo "# UI configuration file"
+echo "UI_CONFIG=$UI_CONFIG"
+echo
 echo "# iCAT certificate for SSL communication and data traffic encryption"
 echo "IRODS_ICAT_CERT=$IRODS_ICAT_CERT"
 echo
