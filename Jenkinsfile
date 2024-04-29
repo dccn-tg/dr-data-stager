@@ -121,7 +121,7 @@ pipeline {
                                     -timeout 120s \
                                     -wait tcp://db:6379 \
                                     -wait http://api-server:8080/v1/docs \
-                                    -wait http://ui:3080'
+                                    -wait http://ui:3080/fs/dir'
                             )
                         }
                     }
