@@ -6,11 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
-	"github.com/Donders-Institute/dr-data-stager/internal/worker/middleware"
+	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
+	"github.com/dccn-tg/dr-data-stager/internal/worker/middleware"
 	"github.com/hibiken/asynq"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
+	"github.com/dccn-tg/dr-data-stager/pkg/tasks"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 

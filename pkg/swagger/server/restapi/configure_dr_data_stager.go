@@ -10,8 +10,8 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/restapi/operations"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/models"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/restapi/operations"
 )
 
 //go:generate swagger generate server --target ../../server --name DrDataStager --spec ../../swagger.yaml --principal models.Principal --exclude-main

@@ -6,7 +6,7 @@ package client
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/client/client/operations"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/client/client/operations"
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"

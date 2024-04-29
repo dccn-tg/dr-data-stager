@@ -483,6 +483,7 @@ definitions:
       - processed
       - failed
 
+  # this is needed for go-swagger to generate proper Principal struct for implementing the Authentication workflow
   principal:
     description: authenticated client identifier
     type: string

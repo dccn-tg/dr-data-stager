@@ -14,7 +14,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/validate"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/models"
 )
 
 // NewPostJobParams creates a new PostJobParams object

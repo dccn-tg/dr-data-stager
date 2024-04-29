@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/models"
 )
 
 // GetDirHandlerFunc turns a function with the right signature into a get dir handler

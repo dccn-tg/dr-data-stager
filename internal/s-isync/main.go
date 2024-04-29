@@ -9,11 +9,11 @@ import (
 	"os/user"
 	"syscall"
 
-	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
-	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
-	"github.com/Donders-Institute/dr-data-stager/pkg/errors"
-	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
-	"github.com/Donders-Institute/dr-data-stager/pkg/utility"
+	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
+	"github.com/dccn-tg/dr-data-stager/pkg/dr"
+	"github.com/dccn-tg/dr-data-stager/pkg/errors"
+	ppath "github.com/dccn-tg/dr-data-stager/pkg/path"
+	"github.com/dccn-tg/dr-data-stager/pkg/utility"
 	"github.com/cyverse/go-irodsclient/irods/types"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )

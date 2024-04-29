@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/models"
 )
 
 // PostJobsOKCode is the HTTP code returned for type PostJobsOK

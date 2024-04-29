@@ -14,7 +14,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
+	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 

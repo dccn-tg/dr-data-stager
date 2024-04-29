@@ -8,12 +8,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
-	"github.com/Donders-Institute/dr-data-stager/pkg/dr"
+	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
+	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 	"github.com/cyverse/go-irodsclient/fs"
 	ifs "github.com/cyverse/go-irodsclient/irods/fs"
 
-	ppath "github.com/Donders-Institute/dr-data-stager/pkg/path"
+	ppath "github.com/dccn-tg/dr-data-stager/pkg/path"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 

@@ -19,7 +19,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/server/models"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/models"
 )
 
 // NewDrDataStagerAPI creates a new DrDataStager instance

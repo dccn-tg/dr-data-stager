@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/utility"
+	"github.com/dccn-tg/dr-data-stager/pkg/utility"
 )
 
 // Configuration is the data structure for marshaling the

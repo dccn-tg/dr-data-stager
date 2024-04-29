@@ -15,7 +15,7 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/client/models"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/client/models"
 )
 
 // NewGetDirParams creates a new GetDirParams object,

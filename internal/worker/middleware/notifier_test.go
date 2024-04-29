@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Donders-Institute/dr-data-stager/internal/worker/config"
-	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
+	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
+	"github.com/dccn-tg/dr-data-stager/pkg/tasks"
 	"github.com/hibiken/asynq"
 
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"

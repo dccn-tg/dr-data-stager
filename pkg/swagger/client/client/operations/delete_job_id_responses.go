@@ -12,7 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/swagger/client/models"
+	"github.com/dccn-tg/dr-data-stager/pkg/swagger/client/models"
 )
 
 // DeleteJobIDReader is a Reader for the DeleteJobID structure.

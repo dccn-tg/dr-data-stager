@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 
-	"github.com/Donders-Institute/dr-data-stager/pkg/tasks"
+	"github.com/dccn-tg/dr-data-stager/pkg/tasks"
 	"github.com/hibiken/asynq"
 )
 
