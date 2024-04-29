@@ -28,9 +28,13 @@ Task is submitted to the _API server_ and dispatched to a distributed _Worker_. 
 
 For each transfer, the _Worker_ spawns a child process as the `stagerUser` to execute a CLI program called [s-isync](internal/s-isync) which performs data transfer between the local filesystem and iRODS.  When interacting with iRODS, `s-isync` makes use of the [go-irodsclient](https://github.com/cyverse/go-irodsclient) Go library.
 
+### DCCN credential
+
+The _UI (frontend)_ implements the OIDC workflow throught the _UI (backend)_.
+
 ### RDR credential
 
-The user submitting the transfer job from the _UI (frontend)_ should be authenticated with the RDR data-access credential.  This credential is retrieved from the RDR portal.  The credential is transferred and stored at the _UI (backend)_ as a session cookie.  When the user submit a transfer job, the credential is encrypted and transferred to the _API server_ and stored in the _task scheduler (asynq)_.  When the task is processed by the _Worker_, the credential is decrypted and used by _s-isync_ program to perform data transfer using the IRODS protocol.
+The user is authenticated through _UI (backend)_ with the RDR data-access credential when submitting transfer jobs from the _UI (frontend)_.  The authentication is done by the _UI (backend)_ making a `PROPFIND` call to the RDR WebDAV endpoint to check the response code (e.g. `401` indicates an invalid credential).  Following a successful authentication, the credential is transferred and stored at the _UI (backend)_ as a session cookie.  When the user submit a transfer job, the credential is encrypted and transferred to the _API server_ and stored in the _task scheduler (asynq)_.  When the task is processed by the _Worker_, the credential is decrypted and used by _s-isync_ program to perform data transfer using the IRODS protocol.
 
 ### The _s-isync_ program
 
