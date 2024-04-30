@@ -16,8 +16,6 @@ services:
       target: api-server
     image: ${DOCKER_REGISTRY:-dccn}/data-stager-api:${DOCKER_IMAGE_TAG:-latest}
     user: root
-    ports:
-      - ${API_EXTERNAL_PORT:-8080}:8080
     volumes:
       - ${API_CONFIG:-./config/api-server.yml}:/etc/stager/api-server.yml:ro
     depends_on:
@@ -62,8 +60,6 @@ services:
     volumes:
       - ${UI_CONFIG:-./ui/config/default.json}:/opt/stager-ui/config/default.json
       - ${CRYPTO_RSA_PUBLIC}:/opt/stager-ui/ssl/public.pem:ro
-    ports:
-      - ${UI_EXTERNAL_PORT:-3080}:3080
     depends_on:
       - api-server
     logging:
@@ -76,8 +72,6 @@ services:
   admin:
     image: hibiken/asynqmon:${ASYNQMON_IMAGE_TAG:-latest}
     command: --port 3081 --redis-url redis://db:6379
-    ports:
-      - ${ASYNQMON_EXTERNAL_PORT:-3081}:3081
     depends_on:
       - db
       - api-server
