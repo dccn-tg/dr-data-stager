@@ -14,7 +14,6 @@ services:
       - ${PROJECT_VOL:-/project}:/project
       - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
       - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
-    command: -v -r redis://db:6379 -c /etc/stager/worker.yml
     deploy:
       placement:
         constraints:
