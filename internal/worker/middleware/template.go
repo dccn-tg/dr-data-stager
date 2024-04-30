@@ -64,6 +64,10 @@ const templateNotificationCompleted string = `
 				<th>destination</th>
 				<td>{{ .DstURL }}</td>
 			</tr>
+			<tr>
+				<th>progress</th>
+				<td>{{ .Result.Progress.Processed }} / {{ .Result.Progress.Total }}</td>
+			</tr>
 		</table>
 	</div>
 </html>`
