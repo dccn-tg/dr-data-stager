@@ -16,6 +16,9 @@ var _encryptStringWithRsaPublicKey = function(toEncrypt, relativeOrAbsolutePathT
     var absolutePath = path.resolve(relativeOrAbsolutePathToPublicKey);
     var publicKey = fs.readFileSync(absolutePath, "utf-8");
     var buffer = Buffer.from(toEncrypt);
+    
+    // encrypt data using the public key, the padding is needed for the service (Go code) to
+    // encrypt it correctly.
     var encrypted = crypto.publicEncrypt({
         key: publicKey,
 		padding: crypto.constants.RSA_PKCS1_PADDING
