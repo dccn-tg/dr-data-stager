@@ -236,6 +236,8 @@ func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan 
 		"-v",
 		"-c", "/etc/stager/worker.yml",
 		"-l", fmt.Sprintf("/tmp/s-isync-%s.log", tid),
+		"-e",
+		"-k", "/etc/stager/ssl/keypair.pem",
 		"--task", tid,
 		"--druser", payload.DrUser,
 		"--drpass", payload.DrPass,
