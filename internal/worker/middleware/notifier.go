@@ -155,12 +155,14 @@ func sendEmailNotification(client *stagerMailer, tinfo *asynq.TaskInfo, nt nmode
 		return
 	}
 
+	idparts := strings.Split(tinfo.ID, ".")
+
 	var subject string
 	switch nt {
 	case nFailed:
-		subject = fmt.Sprintf("[ALERT] stager job %s failed", tinfo.ID)
+		subject = fmt.Sprintf("[ALERT] stager job %s failed", idparts[len(idparts)-1])
 	case nCompleted:
-		subject = fmt.Sprintf("[OK] stager job %s completed", tinfo.ID)
+		subject = fmt.Sprintf("[OK] stager job %s completed", idparts[len(idparts)-1])
 	}
 
 	body := composeMailBody(tinfo, p, nt)
