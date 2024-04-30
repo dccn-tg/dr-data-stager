@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
-	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 	"github.com/cyverse/go-irodsclient/fs"
 	ifs "github.com/cyverse/go-irodsclient/irods/fs"
+	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
+	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 
 	ppath "github.com/dccn-tg/dr-data-stager/pkg/path"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
@@ -113,7 +113,7 @@ func syncWorker(
 				// get file from irods
 				log.Debugf("irods get: %s -> %s\n", fsrc, fdst)
 
-				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 0, nil)
+				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 1, nil)
 
 				// checksum or size comparison for downloaded file
 				if err == nil {
@@ -151,7 +151,7 @@ func syncWorker(
 				// put file to irods
 				log.Debugf("irods put: %s -> %s\n", fsrc, fdst)
 
-				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 0, false, nil)
+				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 1, false, nil)
 
 				// trigger checksum calculation on server side, and compare checksum for uploaded file
 				if err == nil {
