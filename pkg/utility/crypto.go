@@ -47,6 +47,11 @@ func DecryptStringWithRsaKey(encryptedBase64 string, keyFile string) (*string, e
 	privateKeyBlock, _ := pem.Decode(privateKeyPEM)
 	privateKey, err := x509.ParsePKCS8PrivateKey(privateKeyBlock.Bytes)
 	if err != nil {
+		// fallback to try the traditional key format deprecated since OpenSSL > 3.0
+		privateKey, err = x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+	}
+
+	if err != nil {
 		return nil, err
 	}
 
