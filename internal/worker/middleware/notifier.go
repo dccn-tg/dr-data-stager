@@ -195,7 +195,7 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmod
 		return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
 	}
 
-	rslt := new(tasks.StagerTaskResult)
+	var rslt tasks.StagerTaskResult
 	if err := json.Unmarshal(tinfo.Result, &rslt); err != nil {
 		log.Errorf("fail to unmarshal task result %s: %s\n", tinfo.ID, err)
 		return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
@@ -214,7 +214,7 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmod
 		CompletedAt:  tinfo.CompletedAt.Truncate(time.Second),
 		LastFailedAt: tinfo.LastFailedAt.Truncate(time.Second),
 		LastErr:      tinfo.LastErr,
-		Result:       *rslt,
+		Result:       rslt,
 	})
 	if err != nil {
 		log.Errorf("cannot compose email for %s job %s: %s\n", ntStr, tinfo.ID, err)
