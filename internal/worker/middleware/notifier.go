@@ -182,16 +182,22 @@ func sendEmailNotification(client *stagerMailer, tinfo *asynq.TaskInfo, nt nmode
 	}
 }
 
-func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmode) string {
+func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, mode nmode) string {
 
 	var tmsg, ntStr string
-	switch nt {
+
+	tcompleted := tinfo.CompletedAt.Truncate(time.Second)
+	tlastfailed := tinfo.LastFailedAt.Truncate(time.Second)
+
+	switch mode {
 	case nFailed:
 		tmsg = templateNotificationFailed
 		ntStr = "failed"
+		tlastfailed = time.Now().Truncate(time.Second)
 	case nCompleted:
 		tmsg = templateNotificationCompleted
 		ntStr = "completed"
+		tcompleted = time.Now().Truncate(time.Second)
 	}
 
 	t, err := template.New("msg").Parse(tmsg)
@@ -210,14 +216,14 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmod
 
 	err = t.Execute(buf, DataNotification{
 		ID:           tinfo.ID,
-		State:        tinfo.State,
+		State:        mode,
 		StagerUser:   payload.StagerUser,
 		DrUser:       payload.DrUser,
 		SrcURL:       payload.SrcURL,
 		DstURL:       payload.DstURL,
 		CreatedAt:    time.Unix(payload.CreatedAt, 0),
-		CompletedAt:  tinfo.CompletedAt.Truncate(time.Second),
-		LastFailedAt: tinfo.LastFailedAt.Truncate(time.Second),
+		CompletedAt:  tcompleted,
+		LastFailedAt: tlastfailed,
 		LastErr:      tinfo.LastErr,
 		Result:       rslt,
 	})

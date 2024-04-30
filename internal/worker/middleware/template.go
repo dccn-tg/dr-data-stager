@@ -4,12 +4,11 @@ import (
 	"time"
 
 	"github.com/dccn-tg/dr-data-stager/pkg/tasks"
-	"github.com/hibiken/asynq"
 )
 
 type DataNotification struct {
 	ID           string
-	State        asynq.TaskState
+	State        nmode
 	StagerUser   string
 	DrUser       string
 	SrcURL       string
