@@ -164,11 +164,16 @@ func sendEmailNotification(client *stagerMailer, tinfo *asynq.TaskInfo, nt nmode
 
 	body := composeMailBody(tinfo, p, nt)
 
+	recipiant := p.StagerUserEmail
+	if recipiant == "" {
+		recipiant = fmt.Sprintf("%s@localhost", p.StagerUser)
+	}
+
 	err := client.SendHtmlMail(
 		"datasupport@donders.ru.nl",
 		subject,
 		body,
-		[]string{p.StagerUserEmail},
+		[]string{recipiant},
 		cc...,
 	)
 
@@ -198,7 +203,7 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, nt nmod
 	var rslt tasks.StagerTaskResult
 	if err := json.Unmarshal(tinfo.Result, &rslt); err != nil {
 		log.Errorf("fail to unmarshal task result %s: %s\n", tinfo.ID, err)
-		return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
+		//return fmt.Sprintf("stager job %s %s", tinfo.ID, ntStr)
 	}
 
 	buf := new(bytes.Buffer)
