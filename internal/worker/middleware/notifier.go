@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"strings"
 	"time"
 
 	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
@@ -189,6 +190,8 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, mode nm
 	tcompleted := tinfo.CompletedAt.Truncate(time.Second)
 	tlastfailed := tinfo.LastFailedAt.Truncate(time.Second)
 
+	idparts := strings.Split(tinfo.ID, ".")
+
 	switch mode {
 	case nFailed:
 		tmsg = templateNotificationFailed
@@ -215,7 +218,7 @@ func composeMailBody(tinfo *asynq.TaskInfo, payload tasks.StagerPayload, mode nm
 	buf := new(bytes.Buffer)
 
 	err = t.Execute(buf, DataNotification{
-		ID:           tinfo.ID,
+		ID:           idparts[len(idparts)-1],
 		State:        mode,
 		StagerUser:   payload.StagerUser,
 		DrUser:       payload.DrUser,
