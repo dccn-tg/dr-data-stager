@@ -259,4 +259,29 @@ router.delete('/job/:id', auth.isAuthenticated, function(request, response) {
     });
 });
 
+/* Get single transfer job by id */
+router.get('/dac/project/:number', function(request, response) {
+
+    var args = { headers: { "Accept": "application/json" } };
+    var c = new RestClient();
+
+    var url = config.get('stager.restfulEndpoint') + '/dac/project/' + request.params.number;
+
+    c.get(url, args, function(data, resp) {
+        if ( resp.statusCode == 200 ) {
+            response.status(200);
+            response.json(data);
+        } else {
+            console.log('api-server response status: ' + resp.statusCode);
+            response.status(resp.statusCode);
+            response.json({
+                message: resp.statusMessage
+            });
+        }
+    }).on('error', function(e) {
+        console.error(e);
+        util.responseOnError('json', {}, response);
+    });
+});
+
 module.exports = router;
