@@ -218,7 +218,7 @@ pipeline {
                     echo "unable to generate env.sh file, check it manually."
                 }
             }
-            archiveArtifacts "docker-compose.yml, docker-compose.swarm.yml env"
+            archiveArtifacts "docker-compose.yml, docker-compose.swarm.yml, env"
         }
         always {
             echo 'cleaning'
