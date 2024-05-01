@@ -66,15 +66,18 @@ services:
       driver: "json-file"
       options:
         max-size: "20m"
-        max-file: "5"      
+        max-file: "5"
 
   # web ui for task administration
   admin:
-    image: hibiken/asynqmon:${ASYNQMON_IMAGE_TAG:-latest}
-    command: --port 3081 --redis-url redis://db:6379
+    build:
+      context: .
+      target: admin
+    image: ${DOCKER_REGISTRY:-dccn}/data-stager-admin:${DOCKER_IMAGE_TAG:-latest}
+    user: root
     depends_on:
       - db
-      - api-server
+    command: -p 3081 -r redis://db:6379
     logging:
       driver: "json-file"
       options:

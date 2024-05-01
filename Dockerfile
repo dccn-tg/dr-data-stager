@@ -37,3 +37,10 @@ RUN ( mkdir -p /opt/irods/ssl )
 COPY --from=0 /tmp/data-stager/build/data-stager-worker .
 COPY --from=0 /tmp/data-stager/build/s-isync .
 ENTRYPOINT ["./data-stager-worker"]
+
+# stage 4: build image for the worker
+FROM base as admin
+WORKDIR /opt/stager
+RUN ( mkdir -p /opt/irods/ssl )
+COPY --from=0 /tmp/data-stager/build/data-stager-admin .
+ENTRYPOINT ["./data-stager-admin"]

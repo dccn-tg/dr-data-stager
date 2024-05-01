@@ -12,7 +12,7 @@ endif
 
 all: build
 
-build: api-server worker s-isync
+build: api-server worker admin s-isync
 
 swagger:
 	swagger validate pkg/swagger/swagger.yaml
@@ -35,6 +35,9 @@ test_worker:
 
 worker:
 	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o build/data-stager-worker internal/worker/main.go
+
+admin:
+	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o build/data-stager-admin internal/admin/main.go
 
 s-isync:
 	GOOS=$(GOOS) GO111MODULE=$(GO111MODULE) go build -a -installsuffix cgo -o build/s-isync internal/s-isync/*.go
