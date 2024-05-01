@@ -22,7 +22,7 @@ var oidcStrategy = new OidcStrategy({
     callbackURL: '/oidc/callback',
     skipUserProfile: true,  // we are going to get user profile ourselves.
     proxy: true,
-    scope: ["openid", "profile", "offline_access", "urn:dccn:identity:uid", "urn:dccn:data-stager-api:*"],
+    scope: ["openid", "profile", "offline_access", "email", "urn:dccn:identity:uid", "urn:dccn:data-stager-api:*"],
 }, (_issuer, _profile, _context, idToken, accessToken, refreshToken, verified) => {
 
     // getting user profile, and check if the profile contains 'urn:dccn:uid' attribute.
@@ -32,6 +32,7 @@ var oidcStrategy = new OidcStrategy({
         }).userinfo(accessToken).then(profile => {
             // only user with DCCN account is authorized??
             if ( ! profile['urn:dccn:uid'] ) throw new Error("missing DCCN account in profile");
+
             return verified(null, {
                 id_token: idToken,
                 token: accessToken,
