@@ -9,12 +9,12 @@ import (
 	"os/user"
 	"syscall"
 
+	"github.com/cyverse/go-irodsclient/irods/types"
 	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
 	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 	"github.com/dccn-tg/dr-data-stager/pkg/errors"
 	ppath "github.com/dccn-tg/dr-data-stager/pkg/path"
 	"github.com/dccn-tg/dr-data-stager/pkg/utility"
-	"github.com/cyverse/go-irodsclient/irods/types"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
@@ -27,6 +27,8 @@ var (
 	configFile        string = os.Getenv("STAGER_WORKER_CONFIG")
 	drUser            string = "stager@ru.nl"
 	drPass            string
+	drPassFile        string
+	keepPassFile      bool   = false
 	withEncryptedPass bool   = false
 	rsaKey            string = "key.pem"
 	srcPath           string
@@ -41,6 +43,8 @@ func init() {
 	flag.StringVar(&taskID, "task", taskID, "stager task `id`")
 	flag.StringVar(&drUser, "druser", drUser, "(R)DR data-access `username`")
 	flag.StringVar(&drPass, "drpass", drPass, "(R)DR data-access `password`")
+	flag.StringVar(&drPassFile, "fdrpass", drPassFile, "file of the (R)DR data-access `password`.  It overwrites the value of '--drpass'.")
+	flag.BoolVar(&keepPassFile, "keep-fdrpass", keepPassFile, "do not delete the file of '--fdrpass' after the credential is loaded")
 	flag.BoolVar(&withEncryptedPass, "e", withEncryptedPass, "use encrypted (R)DR data-access password")
 	flag.StringVar(&rsaKey, "k", rsaKey, "RSA key `path` for decrypting (R)DR data-access password")
 
@@ -88,6 +92,22 @@ func usage() {
 func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	if drPassFile != "" {
+		// load DR password from the given `drPassFile`
+		data, err := os.ReadFile(drPassFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: fail to load credential from %s: %s\n", drPassFile, err)
+			os.Exit(128)
+		}
+
+		if !keepPassFile {
+			// remove the pass file immediately after the pass is loaded into the memory.
+			os.Remove(drPassFile)
+		}
+
+		drPass = string(data)
+	}
 
 	if withEncryptedPass {
 		encrypted, err := utility.DecryptStringWithRsaKey(drPass, rsaKey)

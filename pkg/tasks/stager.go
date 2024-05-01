@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 	"github.com/hibiken/asynq"
 
 	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
+	"github.com/dccn-tg/dr-data-stager/pkg/utility"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
@@ -231,16 +233,39 @@ func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan 
 	uid, _ := strconv.ParseInt(u.Uid, 10, 32)
 	gid, _ := strconv.ParseInt(u.Gid, 10, 32)
 
+	decrypted, err := utility.DecryptStringWithRsaKey(payload.DrPass, "/etc/stager/ssl/keypair.pem")
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("fail to decrypt credential: %s", err)
+	}
+
+	// store the decrypted pass to a temporary file
+	file, err := os.CreateTemp("", fmt.Sprintf(".drpass-%d-", uid))
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("fail to create file for temporary credential store: %s", err)
+	}
+
+	fnameDrPass := file.Name()
+	_, err = file.WriteString(*decrypted)
+	file.Close()
+
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("fail to write credential to temporary credential store %s: %s", fnameDrPass, err)
+	}
+
+	// change permission of the temporary credential store
+	if err := os.Chown(fnameDrPass, int(uid), int(gid)); err != nil {
+		return nil, nil, nil, fmt.Errorf("fail to change owner of temporary credential store %s: %s", fnameDrPass, err)
+	}
+
 	cmd := exec.Command(
 		"/opt/stager/s-isync",
 		"-v",
 		"-c", "/etc/stager/worker.yml",
 		"-l", fmt.Sprintf("/tmp/s-isync-%s.log", tid),
-		"-e",
 		"-k", "/etc/stager/ssl/keypair.pem",
 		"--task", tid,
 		"--druser", payload.DrUser,
-		"--drpass", payload.DrPass,
+		"--fdrpass", fnameDrPass,
 		payload.SrcURL,
 		payload.DstURL,
 	)
