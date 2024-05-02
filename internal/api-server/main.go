@@ -148,7 +148,7 @@ func main() {
 		// username not in the static credential list, assuming that the password is a oauth2 access token
 		token, err := verifyJwt(password, cfg.Auth.Oauth2.JwksEndpoint)
 		if err != nil || !token.Valid {
-			return nil, errors.New(401, "invalid token: %s", err)
+			return nil, errors.New(401, "invalid basic auth credential: %s", err)
 		}
 
 		// there is login user information attached, set the pricipal as the username.
@@ -162,7 +162,7 @@ func main() {
 		token, err := verifyJwt(tokenStr, cfg.Auth.Oauth2.JwksEndpoint)
 
 		if err != nil || !token.Valid {
-			return nil, errors.New(401, "invalid token: %s", err)
+			return nil, errors.New(401, "invalid oauth2 access token: %s", err)
 		}
 
 		// check token scope
