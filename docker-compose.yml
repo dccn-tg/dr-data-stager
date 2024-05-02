@@ -83,4 +83,8 @@ services:
 
 volumes:
   db:
-    
+
+networks:
+  default:
+    name: dr-data-stager-net
+    attachable: true

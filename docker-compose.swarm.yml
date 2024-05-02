@@ -7,6 +7,10 @@ services:
       - ${PROJECT_VOL:-/project}:/project
       - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
       - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
+    networks:
+      default:
+        aliases:
+          - dr-data-stager-api
   worker:
     volumes:
       - /var/lib/sss/pipes:/var/lib/sss/pipes
@@ -32,8 +36,5 @@ services:
           - dr-data-stager-admin
 
 networks:
-  default:
-    name: dr-data-stager-net
-    attachable: true
   proxynet:
     external: true
