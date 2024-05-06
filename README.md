@@ -20,7 +20,7 @@ There are two type of users of the data-stager: the DCCN data streamer and resea
 
    After a data-acquisition in lab is completed, the streamer initiates the data transfer.  Given that every data-acquisition is associated with a DCCN project ID, the streamer calls out to the data stager to resolve the DAC namespace corresponding to the project ID and submits a data stager task.
 
-   Given that there is no particular RDR user involved in this automatic data transfer, a RDR service account is used for transfer.
+   Given that there is no particular RDR user involved in this automatic data transfer, a RDR service account is used to interact with RDR and transfer data to RDR.
 
 2. Researcher uses data-stager to transfer data between RDR and the DCCN's project storage.
 
