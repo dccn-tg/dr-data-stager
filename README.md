@@ -8,7 +8,7 @@ __Note:__ it is a rewrite of the [DCCN data-stager](https://github.com/Donders-I
 
 The figure below is a schematic drawing of the data stager architecture in relation with the DCCN infrastructure and the iRODS service of the Radboud Data Repository.
 
-The components in green are part of the data stager stack.
+The components in green are key components of the data stager stack.
 
 ![architecture](architecture.svg "architecture")
 
