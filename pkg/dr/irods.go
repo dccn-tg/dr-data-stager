@@ -19,7 +19,13 @@ type Config struct {
 	IrodsSslAlgorithm   string
 	IrodsSslSaltSize    int
 	IrodsHashRounds     int
-	OrganisationalUnits []string
+	OrganisationalUnits []ServiceAccount
+}
+
+type ServiceAccount struct {
+	Name      string
+	IrodsUser string
+	IrodsPass string
 }
 
 func (c Config) AuthSchemeType() types.AuthScheme {
