@@ -93,8 +93,26 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// load global configuration
+	cfg, err := config.LoadConfig(configFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: fail to load configuration: %s\n", configFile)
+		os.Exit(128) // invalid argument
+	}
+
+	// load service account credential from configuration if `drPass` not provided
+	// and the `drUser` matches one of the service accounts in the configuration.
+	if drPass == "" {
+		for _, sa := range cfg.Dr.OrganisationalUnits {
+			if drUser == sa.IrodsUser {
+				drPass = sa.IrodsPass
+				break
+			}
+		}
+	}
+
+	// override DR password provided via the given `drPassFile`
 	if drPassFile != "" {
-		// load DR password from the given `drPassFile`
 		data, err := os.ReadFile(drPassFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: fail to load credential from %s: %s\n", drPassFile, err)
@@ -109,6 +127,7 @@ func main() {
 		drPass = string(data)
 	}
 
+	// decrypt drPass if indicated as an encrypted string
 	if withEncryptedPass {
 		encrypted, err := utility.DecryptStringWithRsaKey(drPass, rsaKey)
 		if err != nil {
@@ -118,19 +137,16 @@ func main() {
 		drPass = *encrypted
 	}
 
+	// reset cfg with drUser and drPass
+	cfg.Dr.IrodsUser = drUser
+	cfg.Dr.IrodsPass = drPass
+
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		cancel()
 	}()
-
-	// load global configuration
-	cfg, err := config.LoadConfig(configFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: fail to load configuration: %s\n", configFile)
-		os.Exit(128) // invalid argument
-	}
 
 	if err := run(ctx, cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
@@ -148,12 +164,6 @@ func run(ctx context.Context, cfg config.Configuration) *errors.IsyncError {
 	}
 
 	log.Infof("[%s] [%s,%s] %s --> %s\n", taskID, user.Username, drUser, srcPath, dstPath)
-
-	// use DR data-access credential given as arguments
-	if drUser != cfg.Dr.IrodsUser {
-		cfg.Dr.IrodsUser = drUser
-		cfg.Dr.IrodsPass = drPass
-	}
 
 	// initialize irods filesystem
 	ifs, err := dr.NewFileSystem("stager", cfg.Dr)

@@ -225,6 +225,15 @@ func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan 
 		return nil, nil, nil, fmt.Errorf("invalid context: missing asynq task id")
 	}
 
+	// common arguments for running `s-isync` executable
+	cmdArgs := []string{
+		"-v",
+		"-c", "/etc/stager/worker.yml",
+		"-l", fmt.Sprintf("/tmp/s-isync-%s.log", tid),
+		"--task", tid,
+		"--druser", payload.DrUser,
+	}
+
 	u, err := user.Lookup(payload.StagerUser)
 	if err != nil {
 		return nil, nil, nil, err
@@ -233,43 +242,48 @@ func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan 
 	uid, _ := strconv.ParseInt(u.Uid, 10, 32)
 	gid, _ := strconv.ParseInt(u.Gid, 10, 32)
 
-	decrypted, err := utility.DecryptStringWithRsaKey(payload.DrPass, "/etc/stager/ssl/keypair.pem")
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("fail to decrypt credential: %s", err)
+	if payload.StagerUser != "root" {
+
+		// for non-privileged stager user, decrypted the credential in task payload and pass it
+		// to the argument of `s-isync` executable.
+
+		decrypted, err := utility.DecryptStringWithRsaKey(payload.DrPass, "/etc/stager/ssl/keypair.pem")
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("fail to decrypt credential: %s", err)
+		}
+
+		// store the decrypted pass to a temporary file
+		file, err := os.CreateTemp("", fmt.Sprintf(".drpass-%d-", uid))
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("fail to create file for temporary credential store: %s", err)
+		}
+
+		fnameDrPass := file.Name()
+		_, err = file.WriteString(*decrypted)
+		file.Close()
+
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("fail to write credential to temporary credential store %s: %s", fnameDrPass, err)
+		}
+
+		// change permission of the temporary credential store
+		if err := os.Chown(fnameDrPass, int(uid), int(gid)); err != nil {
+			return nil, nil, nil, fmt.Errorf("fail to change owner of temporary credential store %s: %s", fnameDrPass, err)
+		}
+
+		cmdArgs = append(
+			cmdArgs,
+			"--fdrpass", fnameDrPass,
+		)
 	}
 
-	// store the decrypted pass to a temporary file
-	file, err := os.CreateTemp("", fmt.Sprintf(".drpass-%d-", uid))
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("fail to create file for temporary credential store: %s", err)
-	}
-
-	fnameDrPass := file.Name()
-	_, err = file.WriteString(*decrypted)
-	file.Close()
-
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("fail to write credential to temporary credential store %s: %s", fnameDrPass, err)
-	}
-
-	// change permission of the temporary credential store
-	if err := os.Chown(fnameDrPass, int(uid), int(gid)); err != nil {
-		return nil, nil, nil, fmt.Errorf("fail to change owner of temporary credential store %s: %s", fnameDrPass, err)
-	}
-
-	cmd := exec.Command(
-		"/opt/stager/s-isync",
-		"-v",
-		"-c", "/etc/stager/worker.yml",
-		"-l", fmt.Sprintf("/tmp/s-isync-%s.log", tid),
-		"-k", "/etc/stager/ssl/keypair.pem",
-		"--task", tid,
-		"--druser", payload.DrUser,
-		"--fdrpass", fnameDrPass,
+	cmdArgs = append(
+		cmdArgs,
 		payload.SrcURL,
 		payload.DstURL,
 	)
 
+	cmd := exec.Command("/opt/stager/s-isync", cmdArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{}
 	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
 

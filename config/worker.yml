@@ -2,8 +2,6 @@ dr:
   irodsHost: icat.localhost
   irodsPort: 1247
   irodsZone: nl.ru.donders
-  irodsUser: user
-  irodsPass: pass
   irodsAuthScheme: native
   irodsSslCacert: /opt/irods/ssl/icat.pem
   irodsSslKeysize: 32
@@ -11,10 +9,12 @@ dr:
   irodsSslSaltSize: 8
   irodsHashRounds: 16
   organisationalUnits:
-    - DCCN
-    - DCC
-    - DCN
-    - DCMN
+    - name: DCCN
+      irodsUser: user
+      irodsPass: pass
+    - name: DCC
+      irodsUser: user
+      irodsPass: pass
 mailer:
   host: localhost
   port: 25
