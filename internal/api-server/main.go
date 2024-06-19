@@ -16,9 +16,9 @@ import (
 	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/restapi"
 	"github.com/dccn-tg/dr-data-stager/pkg/swagger/server/restapi/operations"
 	"github.com/dccn-tg/dr-data-stager/pkg/utility"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/s12v/go-jwks"
@@ -234,7 +234,7 @@ type IDServerClaims struct {
 	Scope    []string `json:"scope"`
 	Audience []string `json:"aud"`
 	ClientID string   `json:"client_id"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 func verifyJwt(tokenStr, jwksEndpoint string) (*jwt.Token, error) {
