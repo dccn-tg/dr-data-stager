@@ -2,16 +2,18 @@ var config = require('config');
 var util = require('../lib/utility');
 var express = require('express');
 var router = express.Router();
+const { createAdapter } = require("webdav-fs");
 
 /* Authenticate user to the RDM service via the webdav interface */
 router.post('/login', function(request, response, next) {
 
     var sess = request.session;
 
-    var wfs = require("webdav-fs")(
-        config.get('rdm.irodsWebDavEndpoint'),
-        request.body.username,
-        request.body.password
+    var wfs = createAdapter(
+        config.get('rdm.irodsWebDavEndpoint'), {
+            "username": request.body.username,
+            "password": request.body.password
+        }
     );
 
     wfs.readdir('/', function(err, contents) {
@@ -54,13 +56,14 @@ router.get('/dir', function(request, response, next) {
     var dir = request.query.dir;
     var isRoot = request.query.isRoot;
 
-    var wfs = require("webdav-fs")(
-        config.get('rdm.irodsWebDavEndpoint'),
-        sess.user['rdm'],
-        sess.pass['rdm']
+    var wfs = createAdapter(
+        config.get('rdm.irodsWebDavEndpoint'), {
+            "username": sess.user['rdm'],
+            "password": sess.pass['rdm']
+        }
     );
 
-    wfs.readdir(dir, function(err, contents) {
+    wfs.readdir(dir, "stat", function(err, contents) {
         if (!err) {
             contents.forEach( function(f) {
                 if ( f.isFile() ) {
@@ -99,10 +102,11 @@ router.post('/mkdir', function(request, response, next) {
 
     var dir = request.body.dir;
 
-    var wfs = require("webdav-fs")(
-        config.get('rdm.irodsWebDavEndpoint'),
-        sess.user['rdm'],
-        sess.pass['rdm']
+    var wfs = createAdapter(
+        config.get('rdm.irodsWebDavEndpoint'), {
+            "username": sess.user['rdm'],
+            "password": sess.pass['rdm']
+        }
     );
 
     wfs.mkdir(dir, function(err) {
