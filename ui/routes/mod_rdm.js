@@ -33,7 +33,7 @@ router.post('/login', function(request, response, next) {
         } else {
             console.error('login error: ' + err);
             response.status(404);
-            response.json({'error': err});
+            response.json({'error': err.message});
         }
     });
 });

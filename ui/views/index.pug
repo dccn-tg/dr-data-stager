@@ -79,7 +79,7 @@ html(lang="en")
   <!-- HTML body -->
   body
     <!-- modal panel for application message -->
-    include app_dialog.jade
+    include app_dialog.pug
     <!-- TODO: improve the system error panel -->
     block error
     <!-- navigation bar -->
@@ -117,6 +117,6 @@ html(lang="en")
     <!-- tabs -->
     div.tab-content
       div.tab-pane.fade.in.active#panel_transfer_request
-        include panel_transfer_request.jade
+        include panel_transfer_request.pug
       div.tab-pane.fade#panel_transfer_history
-        include panel_transfer_history.jade
+        include panel_transfer_history.pug
