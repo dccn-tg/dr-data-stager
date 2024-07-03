@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 	"github.com/cyverse/go-irodsclient/fs"
+	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
@@ -99,7 +99,7 @@ func GetPathInfo(ctx context.Context, path string) (PathInfo, error) {
 			info.Mode = 0
 
 			// iRODS file entry contains checksum if it is available
-			info.checksum = entry.CheckSum
+			info.checksum = fmt.Sprintf("%x", entry.CheckSum)
 			info.Size = entry.Size
 			return info, nil
 		}

@@ -57,6 +57,7 @@ func NewAccount(config Config) (*types.IRODSAccount, error) {
 
 	sslConfig, err := types.CreateIRODSSSLConfig(
 		config.IrodsSslCacert,
+		"",
 		config.IrodsSslKeysize,
 		config.IrodsSslAlgorithm,
 		config.IrodsSslSaltSize,
@@ -69,6 +70,7 @@ func NewAccount(config Config) (*types.IRODSAccount, error) {
 	account.SSLConfiguration = sslConfig
 	account.CSNegotiationPolicy = types.CSNegotiationRequireSSL
 	account.ClientServerNegotiation = true
+	account.SkipVerifyTLS = true
 
 	return account, nil
 }
@@ -93,6 +95,7 @@ func NewProxyAccount(config Config, user string) (*types.IRODSAccount, error) {
 
 	sslConfig, err := types.CreateIRODSSSLConfig(
 		config.IrodsSslCacert,
+		"",
 		config.IrodsSslKeysize,
 		config.IrodsSslAlgorithm,
 		config.IrodsSslSaltSize,
@@ -105,6 +108,7 @@ func NewProxyAccount(config Config, user string) (*types.IRODSAccount, error) {
 	account.SSLConfiguration = sslConfig
 	account.CSNegotiationPolicy = types.CSNegotiationRequireSSL
 	account.ClientServerNegotiation = true
+	account.SkipVerifyTLS = true
 
 	return account, nil
 }

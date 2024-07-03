@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/cyverse/go-irodsclient/fs"
-	ifs "github.com/cyverse/go-irodsclient/irods/fs"
 	"github.com/dccn-tg/dr-data-stager/internal/worker/config"
 	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 
@@ -113,21 +112,7 @@ func syncWorker(
 				// get file from irods
 				log.Debugf("irods get: %s -> %s\n", fsrc, fdst)
 
-				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFileParallel(fsrc, "", fdst, 1, nil)
-
-				// checksum or size comparison for downloaded file
-				if err == nil {
-					sumSrc := psrc.GetChecksum()
-					if sumSrc != "" {
-						if pdst.GetChecksum() != sumSrc {
-							err = fmt.Errorf("file checksum differs")
-						}
-					} else {
-						if pdst.Size != psrc.Size {
-							err = fmt.Errorf("file size differs")
-						}
-					}
-				}
+				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFile(fsrc, "", fdst, true, nil)
 
 				processed <- syncOutput{
 					File:  fsrc,
@@ -151,23 +136,7 @@ func syncWorker(
 				// put file to irods
 				log.Debugf("irods put: %s -> %s\n", fsrc, fdst)
 
-				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFileParallel(fsrc, fdst, "", 1, false, nil)
-
-				// trigger checksum calculation on server side, and compare checksum for uploaded file
-				if err == nil {
-					if conn, xerr := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).GetMetadataConnection(); xerr == nil {
-
-						defer ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).ReturnMetadataConnection(conn)
-
-						if chksum, xerr := ifs.GetDataObjectChecksum(conn, fdst, ""); xerr != nil {
-							log.Errorf("cannot request checksum: %s\n", xerr)
-						} else {
-							if chksum.GetChecksumString() != psrc.GetChecksum() {
-								err = fmt.Errorf("file checksum differs")
-							}
-						}
-					}
-				}
+				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFile(fsrc, fdst, "", false, true, true, nil)
 
 				processed <- syncOutput{
 					File:  fsrc,
