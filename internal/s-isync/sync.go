@@ -114,20 +114,6 @@ func syncWorker(
 
 				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFile(fsrc, "", fdst, true, nil)
 
-				// // checksum or size comparison for downloaded file
-				// if err == nil {
-				// 	sumSrc := psrc.GetChecksum()
-				// 	if sumSrc != "" {
-				// 		if pdst.GetChecksum() != sumSrc {
-				// 			err = fmt.Errorf("file checksum differs")
-				// 		}
-				// 	} else {
-				// 		if pdst.Size != psrc.Size {
-				// 			err = fmt.Errorf("file size differs")
-				// 		}
-				// 	}
-				// }
-
 				processed <- syncOutput{
 					File:  fsrc,
 					Error: err,
@@ -151,22 +137,6 @@ func syncWorker(
 				log.Debugf("irods put: %s -> %s\n", fsrc, fdst)
 
 				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFile(fsrc, fdst, "", false, true, true, nil)
-
-				// // trigger checksum calculation on server side, and compare checksum for uploaded file
-				// if err == nil {
-				// 	if conn, xerr := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).GetMetadataConnection(); xerr == nil {
-
-				// 		defer ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).ReturnMetadataConnection(conn)
-
-				// 		if chksum, xerr := ifs.GetDataObjectChecksum(conn, fdst, ""); xerr != nil {
-				// 			log.Errorf("cannot request checksum: %s\n", xerr)
-				// 		} else {
-				// 			if chksum.GetChecksumString() != psrc.GetChecksum() {
-				// 				err = fmt.Errorf("file checksum differs")
-				// 			}
-				// 		}
-				// 	}
-				// }
 
 				processed <- syncOutput{
 					File:  fsrc,
