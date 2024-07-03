@@ -57,6 +57,7 @@ func NewAccount(config Config) (*types.IRODSAccount, error) {
 
 	sslConfig, err := types.CreateIRODSSSLConfig(
 		config.IrodsSslCacert,
+		"",
 		config.IrodsSslKeysize,
 		config.IrodsSslAlgorithm,
 		config.IrodsSslSaltSize,
@@ -93,6 +94,7 @@ func NewProxyAccount(config Config, user string) (*types.IRODSAccount, error) {
 
 	sslConfig, err := types.CreateIRODSSSLConfig(
 		config.IrodsSslCacert,
+		"",
 		config.IrodsSslKeysize,
 		config.IrodsSslAlgorithm,
 		config.IrodsSslSaltSize,
