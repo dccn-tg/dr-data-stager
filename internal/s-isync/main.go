@@ -21,7 +21,7 @@ import (
 var (
 	//optsConfig  *string
 	optsVerbose       bool   = false
-	nworkers          int    = 4
+	nworkers          int    = 1
 	taskID            string = "0000-0000-0000-0000"
 	logFile           string = "/opt/stager/log/s-isync.log"
 	configFile        string = os.Getenv("STAGER_WORKER_CONFIG")
