@@ -10,7 +10,7 @@ ADD Makefile .
 RUN GOOS=linux make
 
 # stage 1: build image for the required packages
-FROM centos:7 as base
+FROM almalinux:8 as base
 RUN yum install -y nfs4-acl-tools sssd-client attr acl && yum clean all && rm -rf /var/cache/yum/*
 # clean up temporary files created by yum install
 RUN ( yum clean all && \
