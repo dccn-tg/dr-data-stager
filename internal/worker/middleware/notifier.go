@@ -157,26 +157,36 @@ func sendEmailNotification(client *stagerMailer, tinfo *asynq.TaskInfo, nt nmode
 
 	idparts := strings.Split(tinfo.ID, ".")
 
+	recipients := []string{}
+	if p.StagerUserEmail != "" {
+		recipients = append(recipients, p.StagerUserEmail)
+	}
+
 	var subject string
 	switch nt {
 	case nFailed:
 		subject = fmt.Sprintf("[ALERT] stager job %s failed", idparts[len(idparts)-1])
+		// in case there is no recipient, take the first one in `cc` list if it is possible
+		if len(recipients) == 0 && len(cc) > 0 {
+			recipients = append(recipients, cc[0])
+			cc = cc[1:]
+		}
 	case nCompleted:
 		subject = fmt.Sprintf("[OK] stager job %s completed", idparts[len(idparts)-1])
 	}
 
-	body := composeMailBody(tinfo, p, nt)
-
-	recipiant := p.StagerUserEmail
-	if recipiant == "" {
-		recipiant = fmt.Sprintf("%s@localhost", p.StagerUser)
+	if len(recipients) == 0 {
+		log.Warnf("no notification recipient for task %s\n", tinfo.ID)
+		return
 	}
+
+	body := composeMailBody(tinfo, p, nt)
 
 	err := client.SendHtmlMail(
 		"datasupport@donders.ru.nl",
 		subject,
 		body,
-		[]string{recipiant},
+		recipients,
 		cc...,
 	)
 
