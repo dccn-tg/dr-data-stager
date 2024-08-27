@@ -227,7 +227,6 @@ func runSyncAs(ctx context.Context, payload StagerPayload) (chan progress, chan 
 
 	// common arguments for running `s-isync` executable
 	cmdArgs := []string{
-		"-v",
 		"-c", "/etc/stager/worker.yml",
 		"-l", fmt.Sprintf("/tmp/s-isync-%s.log", tid),
 		"--task", tid,
