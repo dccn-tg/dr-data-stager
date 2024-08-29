@@ -121,7 +121,7 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 
 	timer := time.NewTimer(time.Duration(p.TimeoutNoprogress) * time.Second)
 
-	cout, cerr, cmd, err := runSyncAs(ctx, p, stager.config.Process.Concurrency)
+	cout, cerr, cmd, err := runSyncAs(ctx, p, stager.config.Process.Concurrency, stager.config.Process.Verbose)
 	if err != nil {
 		log.Errorf("[%s] %s", tid, err)
 		return err
@@ -218,7 +218,7 @@ type progress struct {
 }
 
 // runSyncAs runs `s-isync` as the `stagerUser` in a go routine.
-func runSyncAs(ctx context.Context, payload StagerPayload, concurrency int) (chan progress, chan string, *exec.Cmd, error) {
+func runSyncAs(ctx context.Context, payload StagerPayload, concurrency int, verbose bool) (chan progress, chan string, *exec.Cmd, error) {
 
 	tid, ok := asynq.GetTaskID(ctx)
 	if !ok {
@@ -236,6 +236,10 @@ func runSyncAs(ctx context.Context, payload StagerPayload, concurrency int) (cha
 		"-p", strconv.Itoa(concurrency),
 		"--task", tid,
 		"--druser", payload.DrUser,
+	}
+
+	if verbose {
+		cmdArgs = append(cmdArgs, "-v")
 	}
 
 	u, err := user.Lookup(payload.StagerUser)

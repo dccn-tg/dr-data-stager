@@ -21,6 +21,7 @@ type Configuration struct {
 
 type ProcessConfiguration struct {
 	Concurrency int
+	Verbose     bool
 }
 
 // LoadConfig reads configuration file `cpath` and returns the
