@@ -112,7 +112,7 @@ func syncWorker(
 				// get file from irods
 				log.Debugf("irods get: %s -> %s\n", fsrc, fdst)
 
-				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFile(fsrc, "", fdst, true, nil)
+				_, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).DownloadFile(fsrc, "", fdst, true, nil)
 
 				processed <- syncOutput{
 					File:  fsrc,
@@ -136,7 +136,7 @@ func syncWorker(
 				// put file to irods
 				log.Debugf("irods put: %s -> %s\n", fsrc, fdst)
 
-				err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFile(fsrc, fdst, "", false, true, true, nil)
+				_, err := ctx.Value(dr.KeyFilesystem).(*fs.FileSystem).UploadFile(fsrc, fdst, "", false, true, true, nil)
 
 				processed <- syncOutput{
 					File:  fsrc,

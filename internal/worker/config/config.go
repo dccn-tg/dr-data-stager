@@ -13,9 +13,15 @@ import (
 // Configuration is the data structure for marshaling the
 // config.yml file using the viper configuration framework.
 type Configuration struct {
-	Dr     dr.Config
-	Mailer cfg.SMTPConfiguration
-	Admins []string
+	Dr      dr.Config
+	Mailer  cfg.SMTPConfiguration
+	Admins  []string
+	Process ProcessConfiguration
+}
+
+type ProcessConfiguration struct {
+	Concurrency int
+	Verbose     bool
 }
 
 // LoadConfig reads configuration file `cpath` and returns the

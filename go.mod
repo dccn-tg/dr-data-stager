@@ -43,7 +43,7 @@ require (
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cyverse/go-irodsclient v0.14.11
+	github.com/cyverse/go-irodsclient v0.14.15
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
