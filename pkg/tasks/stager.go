@@ -145,6 +145,13 @@ func (stager *Stager) ProcessTask(ctx context.Context, t *asynq.Task) error {
 			rslt.Progress.Processed = progress.Success + progress.Failure
 			rslt.Progress.Failed = progress.Failure
 
+			// skip this progress data when `progres.Total` is `0`
+			if progress.Total == 0 {
+				// reset timer
+				timer.Reset(time.Duration(p.TimeoutNoprogress) * time.Second)
+				continue
+			}
+
 			npercent := int(100 * (progress.Success + progress.Failure) / progress.Total)
 
 			log.Debugf("[%s] %d/%d (%d%%) processed", tid, rslt.Progress.Processed, rslt.Progress.Total, npercent)
@@ -324,9 +331,23 @@ func runSyncAs(ctx context.Context, payload StagerPayload, concurrency int, verb
 				continue
 			}
 
-			t, _ := strconv.ParseInt(data[0], 10, 64)
-			s, _ := strconv.ParseInt(data[1], 10, 64)
-			f, _ := strconv.ParseInt(data[2], 10, 64)
+			t, err := strconv.ParseInt(data[0], 10, 64)
+			if err != nil {
+				log.Errorf("cannot parse progress output for total: %s, %s", data[0], err)
+				continue
+			}
+
+			s, err := strconv.ParseInt(data[1], 10, 64)
+			if err != nil {
+				log.Errorf("cannot parse progress output for success: %s, %s", data[1], err)
+				continue
+			}
+
+			f, err := strconv.ParseInt(data[2], 10, 64)
+			if err != nil {
+				log.Errorf("cannot parse progress output for failure: %s, %s", data[2], err)
+				continue
+			}
 
 			cout <- progress{
 				Total:   t,
