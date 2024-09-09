@@ -3,10 +3,8 @@ services:
   api-server:
     volumes:
       - ${PROJECT_VOL:-/project}:/project
-      - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
       - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs
   worker:
     volumes:
       - ${PROJECT_VOL:-/project}:/project
-      - ${PROJECT_FREENAS_VOL:-/project_freenas}:/project_freenas
       - ${PROJECT_CEPHFS_VOL:-/project_cephfs}:/project_cephfs

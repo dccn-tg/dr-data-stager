@@ -2,7 +2,6 @@
 HOME_VOL=/tmp/home
 PROJECT_VOL=/tmp/project
 PROJECT_CEPHFS_VOL=/tmp/project_cephfs
-PROJECT_FREENAS_VOL=/tmp/project_freenas
 
 # OIDC authentication
 AUTH_SERVER=https://login.dccn.nl
