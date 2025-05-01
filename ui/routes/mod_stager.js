@@ -162,7 +162,7 @@ router.post('/jobs', auth.isAuthenticated, function(request, response) {
             stagerUserEmail: request.user.email,
             drUser: sess.user.rdm,
             drPass: util.encryptStringWithRsaPublicKey(sess.pass.rdm, '/opt/stager-ui/ssl/public.pem'),
-            timeout: 86400,
+            timeout: 259200,
             timeout_noprogress: 3600,
             title: 'sync to ' + j.dstURL
         };
