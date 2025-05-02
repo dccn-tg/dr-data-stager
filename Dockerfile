@@ -21,7 +21,7 @@ RUN ( mkdir -p /opt/stager )
 # create configuration directory 
 RUN ( mkdir -p /etc/stager/ssl )
 # expected data sources
-VOLUME ["/project", "/project_freenas", "/project_cephfs", "/home"]
+VOLUME ["/project", "/project_cephfs", "/home"]
 
 # stage 2: build image for api-server
 FROM base as api-server
