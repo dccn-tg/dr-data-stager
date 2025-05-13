@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 	ifs "github.com/cyverse/go-irodsclient/fs"
+	"github.com/dccn-tg/dr-data-stager/pkg/dr"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 )
 
@@ -132,6 +132,10 @@ func (s IrodsCollectionScanner) ScanMakeDir(ctx context.Context, buffer int, dir
 
 	go func() {
 		if s.base.Mode.IsDir() {
+			// ensure the top-level directory at destination exist
+			if err := (*s.dirmaker).Mkdir(ctx, ""); err != nil {
+				log.Errorf("Mkdir failure: %s", err.Error())
+			}
 			s.collWalk(ctx, s.base.Path, &files)
 		} else {
 			files <- s.base.Path
