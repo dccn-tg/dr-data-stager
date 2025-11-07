@@ -4,7 +4,7 @@
         "module": "stager"
     },
     "title": "File Staging Service",
-    "website": "https://data.donders.ru.nl",
+    "website": "https://data.ru.nl",
     "helpdesk": "datasupport@donders.ru.nl",
     "filesystem": {
         "displayName": "local file system",
@@ -21,7 +21,7 @@
         "pathListDir": "/rdm/dir",
         "pathMakeDir": "/rdm/mkdir",
         "exampleLogin": "u123456@ru.nl",
-        "irodsWebDavEndpoint": "https://webdav.data.donders.ru.nl"
+        "irodsWebDavEndpoint": "https://webdav.data.ru.nl"
     },
     "stager": {
         "displayName": "Stager Storage",
