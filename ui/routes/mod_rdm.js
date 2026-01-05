@@ -16,20 +16,28 @@ router.post('/login', function(request, response, next) {
         }
     );
 
-    wfs.readdir('/', function(err, contents) {
+    wfs.readdir('/.login', function(err) {
         if (!err) {
-            // set session data
-            if (typeof sess.user === "undefined" ||
-                typeof sess.user === "undefined" ) {
-                sess.user = {rdm: request.body.username};
-                sess.pass = {rdm: request.body.password};
-            } else {
-                sess.user.rdm = request.body.username;
-                sess.pass.rdm = request.body.password;
-            }
+            wfs.readdir('/', function(err, contents) {
+                if (!err) {
+                    // set session data
+                    if (typeof sess.user === "undefined" ||
+                        typeof sess.pass === "undefined" ) {
+                        sess.user = {rdm: request.body.username};
+                        sess.pass = {rdm: request.body.password};
+                    } else {
+                        sess.user.rdm = request.body.username;
+                        sess.pass.rdm = request.body.password;
+                    }
 
-            response.status(200);
-            response.json(contents);
+                    response.status(200);
+                    response.json(contents);
+                } else {
+                    console.error('login error: ' + err);
+                    response.status(404);
+                    response.json({'error': err.message});
+                }
+            });
         } else {
             console.error('login error: ' + err);
             response.status(404);
