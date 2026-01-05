@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/dccn-tg/dr-gateway v0.0.0-20230808164350-e9fb2cd0c63b
-	github.com/dccn-tg/tg-toolset-golang v1.28.0
+	github.com/dccn-tg/tg-toolset-golang v1.31.0
 	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/loads v0.21.2
 	github.com/go-openapi/runtime v0.25.0

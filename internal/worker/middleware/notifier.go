@@ -14,6 +14,8 @@ import (
 	"github.com/dccn-tg/dr-data-stager/pkg/tasks"
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
 
+	"github.com/dccn-tg/tg-toolset-golang/pkg/mailer"
+
 	"github.com/hibiken/asynq"
 )
 
@@ -44,10 +46,12 @@ func (m nmode) String() string {
 // Notifier is a asynq middleware to handle cancelled jobs and sending out email notification.
 func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.Handler) asynq.Handler {
 
-	// SMTP mailer
-	client := stagerMailer{
-		config: cfg.Mailer,
+	// initiate mailer with SMTP protocol as default
+	mailerProtocol := mailer.SMTP
+	if strings.ToLower(cfg.MailerProtocol) == "graph" {
+		mailerProtocol = mailer.Graph
 	}
+	client, _ := mailer.New(cfg.Mailer, mailerProtocol)
 
 	cct := make(chan ct)
 
@@ -106,7 +110,7 @@ func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.H
 					log.Errorf("cannot get task %s: %s\n", id, err)
 					break
 				} else {
-					sendEmailNotification(&client, tinfo, nCompleted)
+					sendEmailNotification(client, tinfo, nCompleted)
 				}
 			case err == asynq.SkipRetry:
 				log.Debugf("job retry skipped")
@@ -137,7 +141,7 @@ func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.H
 						log.Errorf("cannot get task %s: %s\n", id, err)
 						break
 					} else {
-						sendEmailNotification(&client, tinfo, nFailed, cfg.Admins...)
+						sendEmailNotification(client, tinfo, nFailed, cfg.Admins...)
 					}
 				}
 			}
@@ -147,7 +151,7 @@ func Notifier(inspector *asynq.Inspector, cfg config.Configuration) func(asynq.H
 	}
 }
 
-func sendEmailNotification(client *stagerMailer, tinfo *asynq.TaskInfo, nt nmode, cc ...string) {
+func sendEmailNotification(client mailer.Mailer, tinfo *asynq.TaskInfo, nt nmode, cc ...string) {
 
 	var p tasks.StagerPayload
 	if err := json.Unmarshal(tinfo.Payload, &p); err != nil {

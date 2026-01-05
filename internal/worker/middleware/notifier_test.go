@@ -11,6 +11,7 @@ import (
 	"github.com/hibiken/asynq"
 
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
+	"github.com/dccn-tg/tg-toolset-golang/pkg/mailer"
 )
 
 func init() {
@@ -25,17 +26,12 @@ func init() {
 	)
 }
 
-func TestLoadConfig(t *testing.T) {
+func TestNotification(t *testing.T) {
 
 	cfg, err := config.LoadConfig(os.Getenv("TEST_CONFIG_FILE"))
 
 	if err != nil {
 		t.Fatalf("%s\n", err)
-	}
-
-	// SMTP mailer
-	client := stagerMailer{
-		config: cfg.Mailer,
 	}
 
 	payload, _ := json.Marshal(tasks.StagerPayload{
@@ -72,6 +68,11 @@ func TestLoadConfig(t *testing.T) {
 		Result:       drslt,
 	}
 
-	sendEmailNotification(&client, &tinfo, nFailed, cfg.Admins...)
+	// SMTP mailer
+	client, _ := mailer.New(cfg.Mailer, mailer.SMTP)
+	sendEmailNotification(client, &tinfo, nFailed, cfg.Admins...)
 
+	// Graph mailer
+	client, _ = mailer.New(cfg.Mailer, mailer.Graph)
+	sendEmailNotification(client, &tinfo, nFailed, cfg.Admins...)
 }

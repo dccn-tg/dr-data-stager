@@ -36,6 +36,8 @@ github.com/dccn-tg/dr-gateway v0.0.0-20230808164350-e9fb2cd0c63b h1:gzVXjp6cAR8L
 github.com/dccn-tg/dr-gateway v0.0.0-20230808164350-e9fb2cd0c63b/go.mod h1:ESTmohWZoK1+sXwuxftf6aiGFg+pskuzzLew71u9Ba4=
 github.com/dccn-tg/tg-toolset-golang v1.28.0 h1:qVGEhSEgJmM5SNA1RnPLVQVH/CknUTHGx6Z/Iw3r2wk=
 github.com/dccn-tg/tg-toolset-golang v1.28.0/go.mod h1:AlkvMPFTOGc1heiq98MlqjMSBWf+zhaB0wq7rXENRBo=
+github.com/dccn-tg/tg-toolset-golang v1.31.0 h1:TkRY8TsqTFIZ2BJSvULZoqUxPatWJZDhRcSqV4WQhMY=
+github.com/dccn-tg/tg-toolset-golang v1.31.0/go.mod h1:AlkvMPFTOGc1heiq98MlqjMSBWf+zhaB0wq7rXENRBo=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/docker/go-units v0.4.0 h1:3uh0PgVws3nIA0Q+MwDC8yjEPf9zjRfZZWXZYDct3Tw=
