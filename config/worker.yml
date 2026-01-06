@@ -16,6 +16,7 @@ dr:
       irodsUser: user
       irodsPass: pass
 mailerProtocol: graph
+mailerFromAddress: datasupport-dccn@donders.ru.nl
 mailer:
   smtp:
     host: localhost

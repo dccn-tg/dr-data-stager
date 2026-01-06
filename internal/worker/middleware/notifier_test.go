@@ -70,9 +70,9 @@ func TestNotification(t *testing.T) {
 
 	// SMTP mailer
 	client, _ := mailer.New(cfg.Mailer, mailer.SMTP)
-	sendEmailNotification(client, &tinfo, nFailed, cfg.Admins...)
+	sendEmailNotification(client, &tinfo, nFailed, cfg.MailerFromAddress, cfg.Admins...)
 
 	// Graph mailer
 	client, _ = mailer.New(cfg.Mailer, mailer.Graph)
-	sendEmailNotification(client, &tinfo, nFailed, cfg.Admins...)
+	sendEmailNotification(client, &tinfo, nFailed, cfg.MailerFromAddress, cfg.Admins...)
 }
