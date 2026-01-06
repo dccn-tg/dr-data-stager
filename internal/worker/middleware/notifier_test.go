@@ -34,15 +34,28 @@ func TestNotification(t *testing.T) {
 		t.Fatalf("%s\n", err)
 	}
 
-	payload, _ := json.Marshal(tasks.StagerPayload{
+	payloadSMTP, _ := json.Marshal(tasks.StagerPayload{
 		CreatedAt:         time.Now().Add(-3 * time.Hour).Unix(),
-		Title:             "test email notification",
+		Title:             "test SMTP email notification",
 		DrUser:            "u1234567@ru.nl",
 		DrPass:            "xxxx",
 		DstURL:            "/project/3010000.01/a/b/c/台灣.txt",
 		SrcURL:            "irods:/nl.ru.donders/di/dccn/DAC_3010000.01_173/台灣.txt",
 		StagerUser:        "piepuk",
-		StagerUserEmail:   "h.lee@donders.ru.nl",
+		StagerUserEmail:   os.Getenv("TEST_SMTP_TO_ADDRESS"),
+		Timeout:           86400,
+		TimeoutNoprogress: 3600,
+	})
+
+	payloadGraph, _ := json.Marshal(tasks.StagerPayload{
+		CreatedAt:         time.Now().Add(-3 * time.Hour).Unix(),
+		Title:             "test Graph email notification",
+		DrUser:            "u1234567@ru.nl",
+		DrPass:            "xxxx",
+		DstURL:            "/project/3010000.01/a/b/c/台灣.txt",
+		SrcURL:            "irods:/nl.ru.donders/di/dccn/DAC_3010000.01_173/台灣.txt",
+		StagerUser:        "piepuk",
+		StagerUserEmail:   os.Getenv("TEST_GRAPH_TO_ADDRESS"),
 		Timeout:           86400,
 		TimeoutNoprogress: 3600,
 	})
@@ -54,11 +67,25 @@ func TestNotification(t *testing.T) {
 
 	drslt, _ := json.Marshal(rslt)
 
-	tinfo := asynq.TaskInfo{
+	tinfoSMTP := asynq.TaskInfo{
 		ID:           "123@abc",
 		Queue:        "default",
 		Type:         tasks.TypeStager,
-		Payload:      payload,
+		Payload:      payloadSMTP,
+		State:        asynq.TaskStateCompleted,
+		MaxRetry:     3,
+		Retried:      3,
+		LastErr:      "no data has been uploaded",
+		LastFailedAt: time.Now().Add(-2 * time.Hour),
+		CompletedAt:  time.Now().Add(-1 * time.Minute),
+		Result:       drslt,
+	}
+
+	tinfoGraph := asynq.TaskInfo{
+		ID:           "123@abc",
+		Queue:        "default",
+		Type:         tasks.TypeStager,
+		Payload:      payloadGraph,
 		State:        asynq.TaskStateCompleted,
 		MaxRetry:     3,
 		Retried:      3,
@@ -70,9 +97,9 @@ func TestNotification(t *testing.T) {
 
 	// SMTP mailer
 	client, _ := mailer.New(cfg.Mailer, mailer.SMTP)
-	sendEmailNotification(client, &tinfo, nFailed, cfg.MailerFromAddress, cfg.Admins...)
+	sendEmailNotification(client, &tinfoSMTP, nFailed, cfg.MailerFromAddress, cfg.Admins...)
 
 	// Graph mailer
 	client, _ = mailer.New(cfg.Mailer, mailer.Graph)
-	sendEmailNotification(client, &tinfo, nFailed, cfg.MailerFromAddress, cfg.Admins...)
+	sendEmailNotification(client, &tinfoGraph, nFailed, cfg.MailerFromAddress, cfg.Admins...)
 }
