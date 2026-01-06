@@ -68,7 +68,7 @@ func TestNotification(t *testing.T) {
 	drslt, _ := json.Marshal(rslt)
 
 	tinfoSMTP := asynq.TaskInfo{
-		ID:           "123@abc",
+		ID:           "123@smtp",
 		Queue:        "default",
 		Type:         tasks.TypeStager,
 		Payload:      payloadSMTP,
@@ -82,7 +82,7 @@ func TestNotification(t *testing.T) {
 	}
 
 	tinfoGraph := asynq.TaskInfo{
-		ID:           "123@abc",
+		ID:           "123@graph",
 		Queue:        "default",
 		Type:         tasks.TypeStager,
 		Payload:      payloadGraph,
