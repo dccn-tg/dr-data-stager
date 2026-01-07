@@ -44,8 +44,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract backend Docker metadata
-        id: meta-backend
+      - name: Extract Docker metadata
+        id: meta
         uses: docker/metadata-action@v5.5.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}
@@ -57,7 +57,7 @@ jobs:
             type=semver,pattern={{major}}
 
       - name: Build and push (${{ matrix.target }})"
-        id: build-and-push-backend
+        id: build-and-push
         uses: docker/build-push-action@v5.1.0
         with:
           context: ${{ matrix.context }}
@@ -65,7 +65,7 @@ jobs:
           file: Dockerfile
           pull: true
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
