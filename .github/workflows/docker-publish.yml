@@ -22,8 +22,13 @@ jobs:
         include:
           - target: api-server
             suffix: -api
+            context: .
           - target: worker
             suffix: -worker
+            context: .
+          - target: ui
+            suffix: -ui
+            context: ./ui
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,31 +43,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract frontend Docker metadata
-        id: meta-frontend
-        uses: docker/metadata-action@v5.5.1
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ui
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-
-      - name: Build and push WebUI"
-        id: build-and-push-webui
-        uses: docker/build-push-action@v5.1.0
-        with:
-          context: ./ui
-          file: Dockerfile
-          pull: true
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Extract backend Docker metadata
         id: meta-backend
@@ -80,7 +60,7 @@ jobs:
         id: build-and-push-backend
         uses: docker/build-push-action@v5.1.0
         with:
-          context: .
+          context: ${{ matrix.context }}
           target: ${{ matrix.target }}
           file: Dockerfile
           pull: true
