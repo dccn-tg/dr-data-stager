@@ -1,4 +1,4 @@
-FROM node:21-alpine
+FROM node:21-alpine AS ui
 
 # application metadata
 LABEL donders.ru.nl.app_name "stager-ui"

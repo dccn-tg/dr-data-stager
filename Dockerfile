@@ -10,7 +10,7 @@ ADD Makefile .
 RUN GOOS=linux make
 
 # stage 1: build image for the required packages
-FROM almalinux:8 as base
+FROM almalinux:8 AS base
 RUN yum install -y nfs4-acl-tools sssd-client attr acl && yum clean all && rm -rf /var/cache/yum/*
 # clean up temporary files created by yum install
 RUN ( yum clean all && \
@@ -24,14 +24,14 @@ RUN ( mkdir -p /etc/stager/ssl )
 VOLUME ["/project", "/project_cephfs", "/home"]
 
 # stage 2: build image for api-server
-FROM base as api-server
+FROM base AS api-server
 WORKDIR /opt/stager
 EXPOSE 8080
 COPY --from=0 /tmp/data-stager/build/data-stager-api .
 ENTRYPOINT ["./data-stager-api"]
 
 # stage 3: build image for the worker
-FROM base as worker
+FROM base AS worker
 WORKDIR /opt/stager
 RUN ( mkdir -p /opt/irods/ssl )
 COPY --from=0 /tmp/data-stager/build/data-stager-worker .
