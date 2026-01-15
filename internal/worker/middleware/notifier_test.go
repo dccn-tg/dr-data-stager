@@ -11,6 +11,7 @@ import (
 	"github.com/hibiken/asynq"
 
 	log "github.com/dccn-tg/tg-toolset-golang/pkg/logger"
+	"github.com/dccn-tg/tg-toolset-golang/pkg/mailer"
 )
 
 func init() {
@@ -25,7 +26,7 @@ func init() {
 	)
 }
 
-func TestLoadConfig(t *testing.T) {
+func TestNotification(t *testing.T) {
 
 	cfg, err := config.LoadConfig(os.Getenv("TEST_CONFIG_FILE"))
 
@@ -33,20 +34,28 @@ func TestLoadConfig(t *testing.T) {
 		t.Fatalf("%s\n", err)
 	}
 
-	// SMTP mailer
-	client := stagerMailer{
-		config: cfg.Mailer,
-	}
-
-	payload, _ := json.Marshal(tasks.StagerPayload{
+	payloadSMTP, _ := json.Marshal(tasks.StagerPayload{
 		CreatedAt:         time.Now().Add(-3 * time.Hour).Unix(),
-		Title:             "test email notification",
+		Title:             "test SMTP email notification",
 		DrUser:            "u1234567@ru.nl",
 		DrPass:            "xxxx",
 		DstURL:            "/project/3010000.01/a/b/c/台灣.txt",
 		SrcURL:            "irods:/nl.ru.donders/di/dccn/DAC_3010000.01_173/台灣.txt",
 		StagerUser:        "piepuk",
-		StagerUserEmail:   "h.lee@donders.ru.nl",
+		StagerUserEmail:   os.Getenv("TEST_SMTP_TO_ADDRESS"),
+		Timeout:           86400,
+		TimeoutNoprogress: 3600,
+	})
+
+	payloadGraph, _ := json.Marshal(tasks.StagerPayload{
+		CreatedAt:         time.Now().Add(-3 * time.Hour).Unix(),
+		Title:             "test Graph email notification",
+		DrUser:            "u1234567@ru.nl",
+		DrPass:            "xxxx",
+		DstURL:            "/project/3010000.01/a/b/c/台灣.txt",
+		SrcURL:            "irods:/nl.ru.donders/di/dccn/DAC_3010000.01_173/台灣.txt",
+		StagerUser:        "piepuk",
+		StagerUserEmail:   os.Getenv("TEST_GRAPH_TO_ADDRESS"),
 		Timeout:           86400,
 		TimeoutNoprogress: 3600,
 	})
@@ -58,11 +67,11 @@ func TestLoadConfig(t *testing.T) {
 
 	drslt, _ := json.Marshal(rslt)
 
-	tinfo := asynq.TaskInfo{
-		ID:           "123@abc",
+	tinfoSMTP := asynq.TaskInfo{
+		ID:           "123@smtp",
 		Queue:        "default",
 		Type:         tasks.TypeStager,
-		Payload:      payload,
+		Payload:      payloadSMTP,
 		State:        asynq.TaskStateCompleted,
 		MaxRetry:     3,
 		Retried:      3,
@@ -72,6 +81,25 @@ func TestLoadConfig(t *testing.T) {
 		Result:       drslt,
 	}
 
-	sendEmailNotification(&client, &tinfo, nFailed, cfg.Admins...)
+	tinfoGraph := asynq.TaskInfo{
+		ID:           "123@graph",
+		Queue:        "default",
+		Type:         tasks.TypeStager,
+		Payload:      payloadGraph,
+		State:        asynq.TaskStateCompleted,
+		MaxRetry:     3,
+		Retried:      3,
+		LastErr:      "no data has been uploaded",
+		LastFailedAt: time.Now().Add(-2 * time.Hour),
+		CompletedAt:  time.Now().Add(-1 * time.Minute),
+		Result:       drslt,
+	}
 
+	// SMTP mailer
+	client, _ := mailer.New(cfg.Mailer, mailer.SMTP)
+	sendEmailNotification(client, &tinfoSMTP, nFailed, cfg.MailerFromAddress, cfg.Admins...)
+
+	// Graph mailer
+	client, _ = mailer.New(cfg.Mailer, mailer.Graph)
+	sendEmailNotification(client, &tinfoGraph, nFailed, cfg.MailerFromAddress, cfg.Admins...)
 }

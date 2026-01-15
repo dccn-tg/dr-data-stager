@@ -15,11 +15,20 @@ dr:
     - name: DCC
       irodsUser: user
       irodsPass: pass
+mailerProtocol: graph
+mailerFromAddress: datasupport-dccn@donders.ru.nl
 mailer:
-  host: localhost
-  port: 25
-  auth_plain_user: user
-  auth_plain_pass: pass
+  smtp:
+    host: localhost
+    port: 25
+    auth_plain_user: user
+    auth_plain_pass: pass
+  graph:
+    tenant_id:
+    application_id:
+    client_certificate:
+    client_certificate_pass:
+    client_secret:
 admins:
   - admin1@
   - admin2@
