@@ -84,6 +84,7 @@ func UpdatePpmDacs(
 
 			if err != nil {
 				log.Errorf("%s\n", err)
+				timer.Reset(every)
 				continue
 			}
 
@@ -97,6 +98,7 @@ func UpdatePpmDacs(
 
 			if err != nil {
 				log.Errorf("%s\n", err)
+				timer.Reset(every)
 				continue
 			}
 
@@ -105,6 +107,7 @@ func UpdatePpmDacs(
 
 			if err != nil {
 				log.Errorf("%s\n", err)
+				timer.Reset(every)
 				continue
 			}
 
